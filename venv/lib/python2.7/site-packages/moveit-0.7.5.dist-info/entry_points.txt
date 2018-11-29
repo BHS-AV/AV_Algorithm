@@ -1,0 +1,4 @@
+[console_scripts]
+flow = moveit.flow:main
+moveit = moveit.moveit:main
+
