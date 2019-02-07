@@ -9,6 +9,8 @@ from nav_msgs.msg import Odometry as odom
 from geometry_msgs.msg import Quaternion
 
 
+x=0
+y=0
 orient=[]
 xorient=0
 yorient=0

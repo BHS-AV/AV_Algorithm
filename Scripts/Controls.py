@@ -2,7 +2,7 @@
 import rospy
 
 from ackermann_msgs.msg import AckermannDriveStamped
-
+import Map as m
 import sys, select, termios, tty
 
 turn = 1
@@ -25,6 +25,7 @@ def move(x1, th1, speed=1):
     rospy.init_node('keyop')  # vesc/ackermann_cmd_mux/input/navigation ackermann_msgs/AckermannDriveStamped
     pub = rospy.Publisher('/vesc/ackermann_cmd_mux/input/teleop', AckermannDriveStamped, queue_size=10)
     try:
+        m.move(x1*speed)
         msg = AckermannDriveStamped();
         msg.header.stamp = rospy.Time.now();
         msg.header.frame_id = "base_link";
