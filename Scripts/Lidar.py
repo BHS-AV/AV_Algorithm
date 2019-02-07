@@ -2,6 +2,7 @@ import Controls
 import rospy
 import numpy as np
 import Navigation as nav
+import Map as m
 from nav_msgs.msg import Odometry as odom
 from sensor_msgs.msg import LaserScan
 
@@ -24,6 +25,8 @@ def needsToReverse(dataFront, distFront, range=1):
         return 1
     return 0
 
+def getOrient():
+    return nav.getOrient()
 
 def print_data(data):
     # GLOBAL VARIABLES
@@ -141,7 +144,7 @@ def print_data(data):
         if (needsToReverse(dataFront, distFront, 2) == 0):
             reversing = 0
 
-
+    #m.update(nav.getOrient)
     print ("")
     print ("openings to right: ",rOpenings,".")
     print ("wall angle right = ", int(round(rAng)))
