@@ -36,5 +36,5 @@ def move(x1, th1, speed=1):
         #print ("moving this dude " , speed, "*",x1," ",msg.drive.speed)
         pub.publish(msg)
     except:
-        print 'error'
+        print ('error')
 
