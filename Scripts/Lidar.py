@@ -9,6 +9,7 @@ from sensor_msgs.msg import LaserScan
 reversing = 0
 maxSpeed = 3
 lastTime = 0
+lt=0
 destDir = 1 # 0 = north , 90 = east , 180 = south , 270 = west
 hold=0 # 0 = normal , 1 = right , -1 = left
 
@@ -32,7 +33,11 @@ def print_data(data):
     # GLOBAL VARIABLES
     global reversing
     global maxSpeed
-    global hold
+    global hold,lt
+
+    if (rospy.get_time()>lt+1):
+        lt=rospy.get_time()
+        m.scanWalls(data.ranges)
 
     # TIME
     global lastTime

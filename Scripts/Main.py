@@ -20,7 +20,10 @@ if __name__ == "__main__":
     lidarsub = rospy.Subscriber('scan', LaserScan, Lidar.print_data, queue_size=2)
 
 
-
+lrender=0
 while not rospy.is_shutdown():
     m.update(Lidar.getOrient())
+    if (rospy.get_time()>lrender+2):
+        lrender=rospy.get_time()
+        m.render()
     pass
