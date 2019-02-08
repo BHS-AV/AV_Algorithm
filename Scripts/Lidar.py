@@ -35,7 +35,7 @@ def print_data(data):
     global maxSpeed
     global hold,lt
 
-    if (rospy.get_time()>lt+1):
+    if (rospy.get_time()>lt+.8):
         lt=rospy.get_time()
         m.scanWalls(data.ranges)
 
