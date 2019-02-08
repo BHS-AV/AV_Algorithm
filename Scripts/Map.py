@@ -53,7 +53,7 @@ def render():
 def scanWalls(data):
     global orient
     if (orient==0):return
-    samples=10
+    samples=20
     for i in range(samples):
         addPoint(data,i*(115/samples)+5)
         addPoint(data,240-(i*(115/samples)+5))
@@ -62,25 +62,25 @@ def scanWalls(data):
 
     global oldLocs, lt
 
-    if (time.time() > lt + 20):
+    if (time.time() > lt + 2):
         lt = time.time()
         #avgPoints()
-        #updateWalls()
+        updateWalls()
         oldLocs.append(Point(x / scale, y / scale))
 
 
 def updateWalls():
     i=0
-    global points
+    global points,lscale,scale
 
     for p in points:
         c=getClosestPoint(p)
         if (c!=None):
-            wall.append( Line(p, c))
+            if(distBetween(p,c)<2*lscale/scale):
+                wall.append( Line(p, c))
     #points=points[len(points)/2:len(points)]
     #points=points[len(points)/2:len(points)]
-    points=[]
-    points=[]
+    #points=[]
 
 
 def getClosestPoint(p1=Point(0,0)):
@@ -117,7 +117,7 @@ def avgPoints():
 
 def cleanPoints():
     global points,lscale, scale
-    md=.35*lscale/scale #md = max distance
+    md=.45*lscale/scale #md = max distance
     mindist=.8*lscale/scale
     for p in points:
         x=p.getX()
