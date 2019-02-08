@@ -55,20 +55,45 @@ def render():
 def updateWalls():
     i=0
     global lpoints, rpoints
-    for p in range(len(lpoints)):
-        if (i>1):
-            l=Line(lpoints[p-1],lpoints[p])
-            wall.append(l)
-        i=i+1
-    #lpoints=[lpoints[len(lpoints)-2]]
-    lpoints=[]
-    for p in range(len(rpoints)):
-        if (i>1):
-            l=Line(rpoints[p-1],rpoints[p])
-            wall.append(l)
-        i=i+1
-    #rpoints=[rpoints[len(rpoints)-2]]
+
+    points=lpoints
+    for p in rpoints:
+        points.append(p)
+
+    for p in points:
+        c=getClosestPoint(p)
+        if (c!=None):
+            wall.append( Line(p, c))
+    #lpoints=lpoints[len(lpoints)/2:len(lpoints)]
+    #rpoints=rpoints[len(rpoints)/2:len(rpoints)]
     rpoints=[]
+    lpoints=[]
+
+
+def getClosestPoint(p1=Point(0,0)):
+    x=p1.getX()
+    y=p1.getY()
+    closest=None
+    closest_dist=10000
+    for p in rpoints:
+        if (p!=p1):
+            dx=p.getX()-x
+            dy=p.getY()-y
+            dist=np.math.sqrt(dx*dx+dy*dy)
+            if(dist<closest_dist):
+                closest=p
+                closest_dist=dist
+    for p in lpoints:
+        if (p!=p1):
+            dx=p.getX()-x
+            dy=p.getY()-y
+            dist=np.math.sqrt(dx*dx+dy*dy)
+            if(dist<closest_dist):
+                closest=p
+                closest_dist=dist
+
+    return closest
+
 
 def avgPoints():
     i=0
@@ -126,9 +151,10 @@ def scanWalls(data):
     if (time.time() > lt + 1):
         lt = time.time()
         cleanPoints()
-        # updateWalls()
-        #avgPoints()
+        avgPoints()
+        updateWalls()
         oldLocs.append(Point(x / scale, y / scale))
+
 
 def addPoint(data, dir):
     global scale, orient,lscale
