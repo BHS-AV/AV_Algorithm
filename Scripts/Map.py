@@ -80,7 +80,8 @@ def updateWalls():
                 wall.append( Line(p, c))
     #points=points[len(points)/2:len(points)]
     #points=points[len(points)/2:len(points)]
-    #points=[]
+    #points=[]'
+    #test
 
 
 def getClosestPoint(p1=Point(0,0)):
