@@ -59,35 +59,41 @@ def scanWalls(data):
         addPoint(data,240-(i*(115/samples)+5))
 
     cleanPoints()
+    updateWalls()
+    #combineSimilarLines()
 
     global oldLocs, lt,x ,y
 
     if (time.time() > lt + 2):
         lt = time.time()
         #avgPoints()
-        updateWalls()
-        combineSimilarLines()
         oldLocs.append(Point(x / scale, y / scale))
 
 
 def combineSimilarLines():
     print ("there are currently ", len(wall)," walls")
-    maxdist=2.0*lscale/scale
+    s=time.time()
+    maxdist=5.0*lscale/scale
+
+
     for l in wall:
+        if (False == wall.__contains__(l)):continue
+        #if (len(wall)>20 and wall.index(l)>len(wall)/2):continue
         for l1 in wall:
             if (wall.__contains__(l1) and wall.__contains__(l)):
                 if (wall.index(l1)>wall.index(l)):
                     if (l1!=l):
                         sim=getLineSimilarity(l,l1)
-                        if (sim>.95 and sim<1.01):
+                        if (sim>.7 and sim<1.01):
                             dist=getDistBetweenLines(l,l1)
                             if (maxdist>dist):
-                                print ("sim is ",sim," and dist is ",dist," so combining ",l, ", ",l1)
-                                wall.append(combineLines(l,l1))
+                                print ("sim is ", sim, " and dist is ", dist, " so combining "''',l, ", ",l1''')
+                                wall.append(combineLines(l, l1))
                                 wall.remove(l)
                                 wall.remove(l1)
-            #break
-
+                #break
+    t=time.time()-s
+    print ("combineing took ",t," and there are now ",len(wall)," walls")
 
 
 def getDistBetweenLines(l1,l2):
