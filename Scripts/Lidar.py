@@ -86,6 +86,7 @@ def print_data(data):
 
 
 
+
     ttt=0
     if (hold!=0 and straightness>5):
         #print (len(rOpenings)," openings to the right, and ", len(lOpenings)," to the left")
@@ -149,6 +150,7 @@ def print_data(data):
         if (needsToReverse(dataFront, distFront, 2) == 0):
             reversing = 0
 
+    '''
     #m.update(nav.getOrient)
     print ("")
     print ("openings to right: ",rOpenings,".")
@@ -160,7 +162,7 @@ def print_data(data):
     print ("turning ",(int(round(turn*100))/100.0), " and moving ", x, " at a speed of ", (int(round(speed*100))/100.0))
     print ("left ", (int(round(distLeft*100))/100.0), " forward ", (int(round(distFront*100))/100.0), " right ", (int(round(distRight*100))/100.0))
     #print ("dtime =", dt)
-    print ("")
+    print ("")'''
 
     Controls.move(x, turn, speed)
 

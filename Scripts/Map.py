@@ -60,13 +60,66 @@ def scanWalls(data):
 
     cleanPoints()
 
-    global oldLocs, lt
+    global oldLocs, lt,x ,y
 
     if (time.time() > lt + 2):
         lt = time.time()
         #avgPoints()
         updateWalls()
+        combineSimilarLines()
         oldLocs.append(Point(x / scale, y / scale))
+
+
+def combineSimilarLines():
+    print ("there are currently ", len(wall)," walls")
+    maxdist=2.0*lscale/scale
+    for l in wall:
+        for l1 in wall:
+            if (wall.__contains__(l1) and wall.__contains__(l)):
+                if (wall.index(l1)>wall.index(l)):
+                    if (l1!=l):
+                        sim=getLineSimilarity(l,l1)
+                        if (sim>.95 and sim<1.01):
+                            dist=getDistBetweenLines(l,l1)
+                            if (maxdist>dist):
+                                print ("sim is ",sim," and dist is ",dist," so combining ",l, ", ",l1)
+                                wall.append(combineLines(l,l1))
+                                wall.remove(l)
+                                wall.remove(l1)
+            #break
+
+
+
+def getDistBetweenLines(l1,l2):
+    xs = [l1.p1.getX(), l1.p2.getX(), l2.p1.getX(), l2.p2.getX()]
+    ys = [l1.p1.getX(), l1.p2.getX(), l2.p1.getX(), l2.p2.getX()]
+    xs.remove(max(xs))
+    xs.remove(min(xs))
+    ys.remove(max(ys))
+    ys.remove(min(ys))
+    dx=xs[0]-xs[1]
+    dy=ys[0]-ys[1]
+    return np.math.sqrt(dx*dx+dy*dy)
+
+def combineLines(l1,l2):
+    xs=[l1.p1.getX(),l1.p2.getX(),l2.p1.getX(),l2.p2.getX()]
+    ys=[l1.p1.getY(),l1.p2.getY(),l2.p1.getY(),l2.p2.getY()]
+    if((l1.p1.getX()<l1.p2.getX()) == (l1.p1.getY()<l1.p2.getY())):
+        return Line(Point(min(xs),min(ys)),Point(max(xs),max(ys)))
+    else:
+        return Line(Point(min(xs),max(ys)),Point(max(xs),min(ys)))
+
+
+def getLineSimilarity(l1,l2):
+    m1=(l1.p2.getX()-l1.p1.getX())/(l1.p2.getY()-l1.p1.getY())
+    m2=(l2.p2.getX()-l2.p1.getX())/(l2.p2.getY()-l2.p1.getY())
+    if (m1>0!=m2>0):
+        return 0
+    if (m1>m2):
+        return (m2/m1)
+    else:
+        return (m1/m2)
+
 
 
 def updateWalls():
@@ -80,11 +133,16 @@ def updateWalls():
                 wall.append( Line(p, c))
     #points=points[len(points)/2:len(points)]
     #points=points[len(points)/2:len(points)]
-    #points=[]'
+    points=[]
     #test
 
+def getLineOrient(l):
+    dx=l.p2.getX()-l.p1.getX()
+    dy=l.p2.getY()-l.p1.getY()
+    o=np.math.atan2(dy,dx)
+    return o
 
-def getClosestPoint(p1=Point(0,0)):
+def getClosestPoint(p1):
     x=p1.getX()
     y=p1.getY()
     closest=None
@@ -96,6 +154,7 @@ def getClosestPoint(p1=Point(0,0)):
             dist=np.math.sqrt(dx*dx+dy*dy)
             if(dist<closest_dist):
                 closest=p
+                #print ("new closest dist is ",closest_dist)
                 closest_dist=dist
 
     global scale, lscale
