@@ -59,7 +59,7 @@ def scanWalls(data):
         addPoint(data,240-(i*(115/samples)+5))
 
     cleanPoints()
-    updateWalls()
+    #updateWalls()
     #combineSimilarLines()
 
     global oldLocs, lt,x ,y
@@ -93,7 +93,7 @@ def combineSimilarLines():
                                 wall.remove(l1)
                 #break
     t=time.time()-s
-    print ("combineing took ",t," and there are now ",len(wall)," walls")
+    print ("combining took ",t," and there are now ",len(wall)," walls")
 
 
 def getDistBetweenLines(l1,l2):
