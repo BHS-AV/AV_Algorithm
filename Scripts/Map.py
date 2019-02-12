@@ -67,15 +67,26 @@ def scanWalls(data):
 
         lp1=getPoint(data,i*(115/samples)+5)
         rp1=getPoint(data,240-(i*(115/samples)+5))
+        w=.2
         if (lp1!=None and lp!=None):
-            wall.append(Line(lp,lp1))
-            removeLinesIntersecting(Line(lp1, cp))
+            l=Line(lp1, lp)
+            addCombineWall(l)
+
+            wp1=Point((lp1.x+w*cp.x)/(1.0+w),(lp1.y+w*cp.y)/(1.0+w))
+            removeLinesIntersecting(Line(wp1, cp))
+
+
+            #wall.append(Line(lp,lp1))
+
+            #addWall(Line(lp,lp1))
 
         if (rp1!=None and rp!=None):
-            removeLinesIntersecting(Line(rp1, cp))
-
-            wall.append(Line(rp,rp1))
-
+            l=Line(rp1, rp)
+            addCombineWall(l)
+            wp1=Point((rp1.x+w*cp.x)/(1.0+w),(rp1.y+w*cp.y)/(1.0+w))
+            removeLinesIntersecting(Line(wp1, cp))
+            #wall.append(Line(rp,rp1))
+            #addWall(Line(rp,rp1))
 
         lp=lp1
         rp=rp1
@@ -84,12 +95,38 @@ def scanWalls(data):
     if (time.time() > lt + 2):
         lt = time.time()
         #avgPoints()
-        updateWalls()
-       # combineSimilarLines()
+        #updateWalls()
+        #combineSimilarLines()
         oldLocs.append(Point(x / scale, y / scale))
         if(len(oldLocs)>2):
             removeLinesIntersecting(Line(oldLocs[len(oldLocs)-1],oldLocs[len(oldLocs)-2]))
 
+
+
+
+def addCombineWall(l):
+    for l1 in wall:
+        if (doLinesIntersect(l,l1)):
+            combineLines(l1,l)
+            return
+    wall.append(l)
+
+    pass
+
+def addWall(l1):
+    global lscale,scale
+
+    maxdist=1.0*lscale/scale
+    for w in wall:
+        if (l1 != w):
+            sim = getLineOrientSimilarity(w, l1)
+            if (sim > .9 and sim < 1.01):
+                dist = getDistBetweenLines(w, l1)
+                if (maxdist > dist):
+                    wall.append(combineLines(w, l1))
+                    wall.remove(w)
+                    return
+    wall.append(l1)
 
 def combineSimilarLines():
     print ("there are currently ", len(wall)," walls")
@@ -121,6 +158,7 @@ def removeLinesIntersecting(l1):
         if(doLinesIntersect(l1,w)):
             #print (l1," intersects with ",w)
             wall.remove(w)
+
 
 def getDistBetweenLines(l1,l2):
     xs = [l1.p1.getX(), l1.p2.getX(), l2.p1.getX(), l2.p2.getX()]
@@ -210,8 +248,9 @@ def getClosestPoint(p1):
 
 
 def doLinesIntersect(l1,l2):
-    m1 = (l1.p2.getX() - l1.p1.getX()) / (l1.p2.getY() - l1.p1.getY())
-    m2 = (l2.p2.getX() - l2.p1.getX()) / (l2.p2.getY() - l2.p1.getY())
+
+    m1 = (l1.p2.getX() - l1.p1.getX()) / ((l1.p2.getY() - l1.p1.getY())+.000001)
+    m2 = (l2.p2.getX() - l2.p1.getX()) / ((l2.p2.getY() - l2.p1.getY())+.000001)
     b1=l1.p1.getY()-(m1*l1.p1.getX())
     b2=l2.p1.getY()-(m2*l2.p1.getX())
     x=(b2-b1)/(m1-m2)
