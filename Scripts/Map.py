@@ -20,7 +20,7 @@ lscale=50.0
 
 oldLocs=[Point(x / scale, y / scale)]
 points=[]
-points=[]
+#points=[]
 wall=[]
 
 def update(dir):
@@ -32,6 +32,9 @@ def render():
     global win,front,c,x,y,orient, oldLocs
     c = Circle(Point(x/scale,y/scale), 10)
     c.setFill("black")
+    s="walls : ",len(wall)," "
+    tloc=Point(100,100)
+    t=Text(tloc,s)
     front= Circle(Point(x/scale+(10*np.math.cos(orient)),y/scale+(10*np.math.sin(orient))),5)
     front.setFill("red")
     clear(win)
@@ -47,11 +50,12 @@ def render():
     for l in wall:
         l.draw(win)
     c.draw(win)
+    t.draw(win)
     front.draw(win)
 
 
 def scanWalls(data):
-    global orient,x,y
+    global orient,x,y,lt,oldLocs
     if (orient==0):return
     samples=10
     lp=None
@@ -77,15 +81,14 @@ def scanWalls(data):
         rp=rp1
     #cleanPoints()
 
-
-    global oldLocs, lt,x ,y
-
     if (time.time() > lt + 2):
         lt = time.time()
         #avgPoints()
         updateWalls()
        # combineSimilarLines()
         oldLocs.append(Point(x / scale, y / scale))
+        if(len(oldLocs)>2):
+            removeLinesIntersecting(Line(oldLocs[len(oldLocs)-1],oldLocs[len(oldLocs)-2]))
 
 
 def combineSimilarLines():
