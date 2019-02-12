@@ -51,19 +51,28 @@ def render():
 
 
 def scanWalls(data):
-    global orient
+    global orient,x,y
     if (orient==0):return
     samples=10
     lp=None
     rp=None
+
+    cp=Point(x/scale,y/scale)
     for i in range(samples):
+
 
         lp1=getPoint(data,i*(115/samples)+5)
         rp1=getPoint(data,240-(i*(115/samples)+5))
         if (lp1!=None and lp!=None):
             wall.append(Line(lp,lp1))
+            removeLinesIntersecting(Line(lp1, cp))
+
         if (rp1!=None and rp!=None):
+            removeLinesIntersecting(Line(rp1, cp))
+
             wall.append(Line(rp,rp1))
+
+
         lp=lp1
         rp=rp1
     #cleanPoints()
@@ -104,6 +113,11 @@ def combineSimilarLines():
     t=time.time()-s
     print ("combineing took ",t," and there are now ",len(wall)," walls")
 
+def removeLinesIntersecting(l1):
+    for w in wall:
+        if(doLinesIntersect(l1,w)):
+            #print (l1," intersects with ",w)
+            wall.remove(w)
 
 def getDistBetweenLines(l1,l2):
     xs = [l1.p1.getX(), l1.p2.getX(), l2.p1.getX(), l2.p2.getX()]
@@ -191,6 +205,20 @@ def getClosestPoint(p1):
 
     return closest
 
+
+def doLinesIntersect(l1,l2):
+    m1 = (l1.p2.getX() - l1.p1.getX()) / (l1.p2.getY() - l1.p1.getY())
+    m2 = (l2.p2.getX() - l2.p1.getX()) / (l2.p2.getY() - l2.p1.getY())
+    b1=l1.p1.getY()-(m1*l1.p1.getX())
+    b2=l2.p1.getY()-(m2*l2.p1.getX())
+    x=(b2-b1)/(m1-m2)
+
+    if (l1.p1.x<x<l1.p2.x or l1.p1.x>x>l1.p2.x):
+        if (l2.p1.x < x < l2.p2.x or l2.p1.x > x > l2.p2.x):
+            #print (l1,", ",l2," returning true")
+            return True
+    #print("returning false")
+    return False
 
 def avgPoints():
     i=0
