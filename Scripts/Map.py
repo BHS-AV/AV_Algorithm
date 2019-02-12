@@ -53,20 +53,29 @@ def render():
 def scanWalls(data):
     global orient
     if (orient==0):return
-    samples=20
+    samples=10
+    lp=None
+    rp=None
     for i in range(samples):
-        addPoint(data,i*(115/samples)+5)
-        addPoint(data,240-(i*(115/samples)+5))
 
-    cleanPoints()
-    #updateWalls()
-    #combineSimilarLines()
+        lp1=getPoint(data,i*(115/samples)+5)
+        rp1=getPoint(data,240-(i*(115/samples)+5))
+        if (lp1!=None and lp!=None):
+            wall.append(Line(lp,lp1))
+        if (rp1!=None and rp!=None):
+            wall.append(Line(rp,rp1))
+        lp=lp1
+        rp=rp1
+    #cleanPoints()
+
 
     global oldLocs, lt,x ,y
 
     if (time.time() > lt + 2):
         lt = time.time()
         #avgPoints()
+        updateWalls()
+       # combineSimilarLines()
         oldLocs.append(Point(x / scale, y / scale))
 
 
@@ -83,7 +92,7 @@ def combineSimilarLines():
             if (wall.__contains__(l1) and wall.__contains__(l)):
                 if (wall.index(l1)>wall.index(l)):
                     if (l1!=l):
-                        sim=getLineSimilarity(l,l1)
+                        sim=getLineOrientSimilarity(l,l1)
                         if (sim>.7 and sim<1.01):
                             dist=getDistBetweenLines(l,l1)
                             if (maxdist>dist):
@@ -93,7 +102,7 @@ def combineSimilarLines():
                                 wall.remove(l1)
                 #break
     t=time.time()-s
-    print ("combining took ",t," and there are now ",len(wall)," walls")
+    print ("combineing took ",t," and there are now ",len(wall)," walls")
 
 
 def getDistBetweenLines(l1,l2):
@@ -126,6 +135,17 @@ def getLineSimilarity(l1,l2):
     else:
         return (m1/m2)
 
+def getLineOrientSimilarity(l1,l2):
+    m1=np.math.atan((l1.p2.getY()-l1.p1.getY())/(l1.p2.getX()-l1.p1.getX()))
+    m2=np.math.atan((l2.p2.getY()-l2.p1.getY())/(l2.p2.getX()-l2.p1.getX()))
+
+    if (m1>0!=m2>0):
+        return 0
+    if (m1>m2):
+        return (m2/m1)
+    else:
+        return (m1/m2)
+
 
 
 def updateWalls():
@@ -137,8 +157,10 @@ def updateWalls():
         if (c!=None):
             if(distBetween(p,c)<2*lscale/scale):
                 wall.append( Line(p, c))
-    #points=points[len(points)/2:len(points)]
-    #points=points[len(points)/2:len(points)]
+                points.remove(c)
+                points.remove(p)
+    points=points[len(points)/2:len(points)]
+    points=points[len(points)/2:len(points)]
     points=[]
     #test
 
@@ -210,7 +232,7 @@ def distBetween(p1=Point(0,0),p2=Point(0,0)):
     return np.sqrt(dx*dx+dy*dy)
 
 
-def addPoint(data, dir):
+def getPoint(data, dir):
     global scale, orient,lscale
     r=get_dist(data,dir)
     #d=get_data_array(data, dir-3,dir+3)
@@ -221,8 +243,8 @@ def addPoint(data, dir):
         d1=((((dir)-120)*3.14)/180.0)+orient
         #r=d.mean()*lscale/scale
         p=Point(x / scale + (r * np.math.cos(d1)), y / scale + (r * np.math.sin(d1)))
-        points.append(p)
-
+        return p
+    return None
 
 def get_dist(data, a=0):
     PPD = 4.5  # points per degree
