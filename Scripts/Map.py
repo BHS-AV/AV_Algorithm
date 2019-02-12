@@ -22,6 +22,7 @@ oldLocs=[Point(x / scale, y / scale)]
 points=[]
 #points=[]
 wall=[]
+allwalls=[]
 
 def update(dir):
     global win,front,c,x,y,orient, oldLocs
@@ -43,12 +44,11 @@ def render():
         p.setFill("orange")
         p.draw(win)
 
-    for pp in points:
-        p=Circle(pp, 3)
-        p.setFill("blue")
-        p.draw(win)
     for l in wall:
         l.draw(win)
+    for w in allwalls:
+        w.setFill("blue")
+
     c.draw(win)
     t.draw(win)
     front.draw(win)
@@ -57,7 +57,7 @@ def render():
 def scanWalls(data):
     global orient,x,y,lt,oldLocs
     if (orient==0):return
-    samples=10
+    samples=20
     lp=None
     rp=None
 
