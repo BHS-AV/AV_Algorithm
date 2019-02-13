@@ -1,4 +1,5 @@
 import numpy as np
+
 from graphics import *
 
 #from Scripts.graphics import Circle, Point
@@ -82,6 +83,10 @@ def scanWalls(data):
 
         if (rp1!=None and rp!=None):
             l=Line(rp1, rp)
+            #print(LineFunc(l))
+            f=LineFunc(l)
+            #print(f)
+            print(f.m,"x+",f.b)
             addCombineWall(l)
             wp1=Point((rp1.x+w*cp.x)/(1.0+w),(rp1.y+w*cp.y)/(1.0+w))
             removeLinesIntersecting(Line(wp1, cp))
@@ -102,6 +107,9 @@ def scanWalls(data):
             removeLinesIntersecting(Line(oldLocs[len(oldLocs)-1],oldLocs[len(oldLocs)-2]))
 
 
+
+#def tryCreatingLine(m,b):
+    
 
 
 def addCombineWall(l):
@@ -340,3 +348,27 @@ def clear(win):
     for item in win.items[:]:
         item.undraw()
     win.update()
+
+
+class LineFunc():
+
+    m = None  # slope
+    b = None  # y intercept
+    orient=None
+
+    def __init__(self,l1):
+        self.m=(l1.p2.getX() - l1.p1.getX()) / ((l1.p2.getY() - l1.p1.getY())+.000001)
+        self.b=l1.p1.getY()-(l1.p1.getX()*self.m)
+        self.orient=np.math.atan(1.0/self.m)
+
+    def f(self,x):
+        return (self.m*x)+self.b
+
+    def getLineSim(self, l1):
+        func=LineFunc(l1)
+
+
+    
+    def __repr__(self):
+        return "f(x)=".format(str(self.m),"x+",str(self.b))
+
