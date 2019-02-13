@@ -365,7 +365,12 @@ class LineFunc():
         return (self.m*x)+self.b
 
     def getLineSim(self, l1):
+        global scale,lscale
         func=LineFunc(l1)
+        orientsim=1-(abs(self.orient-func.orient)/3.14)
+        dy1=self.f(l1.p1.getX())-l1.p1.getY()
+        dy2=self.f(l1.p2.getX())-l1.p2.getY()
+        dy=(dy1+dy2)/2.0
 
 
     
