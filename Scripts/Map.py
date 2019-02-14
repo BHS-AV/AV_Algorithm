@@ -31,7 +31,7 @@ def update(dir):
     orient=d1
 
 def render():
-    global win,front,c,x,y,orient, oldLocs
+    global win,front,c,x,y,orient, oldLocs,points
     c = Circle(Point(x/scale,y/scale), 10)
     c.setFill("black")
     s="walls : ",len(wall)," "
@@ -44,9 +44,11 @@ def render():
         p=Circle(pp, 3)
         p.setFill("orange")
         p.draw(win)
-    for p in points:
-        p.setFill("yellow")
-        p.draw(win)
+    for p1 in points:
+        p2 = Circle(p1, 3)
+        p2.setFill("yellow")
+        p2.draw(win)
+
     for l in wall:
         l.draw(win)
     for w in allwalls:
@@ -59,48 +61,58 @@ def render():
 
 
 def scanWalls(data):
-    global orient,x,y,lt,oldLocs
+    global orient,x,y,lt,oldLocs,points
     if (orient==0):return
     samples=20
     lp=None
     rp=None
 
     cp=Point(x/scale,y/scale)
+
+    lineSamples=5
     for i in range(samples):
 
 
         lp1=getPoint(data,i*(115/samples)+5)
         rp1=getPoint(data,240-(i*(115/samples)+5))
+        if (lp1!=None):
+            points.append(lp1)
+        if (rp1!=None):
+            points.append(rp1)
+
         w=.2
-        if (lp1!=None and lp!=None):
-            l=Line(lp1, lp)
-            addCombineWall(l)
-
-            wp1=Point((lp1.x+w*cp.x)/(1.0+w),(lp1.y+w*cp.y)/(1.0+w))
-            #removeLinesIntersecting(Line(wp1, cp))
-            clipLinesInterSecting(Line(wp1, cp),False)
 
 
-            #wall.append(Line(lp,lp1))
+        if (i%(samples/lineSamples)==0):
+            if (lp1!=None and lp!=None):
+                l=Line(lp1, lp)
+                addCombineWall(l)
 
-            #addWall(Line(lp,lp1))
+                wp1=Point((lp1.x+w*cp.x)/(1.0+w),(lp1.y+w*cp.y)/(1.0+w))
+                #removeLinesIntersecting(Line(wp1, cp))
+                clipLinesInterSecting(Line(wp1, cp),False)
 
-        if (rp1!=None and rp!=None):
-            l=Line(rp1, rp)
-            #print(LineFunc(l))
-            #f=LineFunc(l)
-            #print(f)
-            #print(f.m,"x+",f.b)
-            addCombineWall(l)
-            wp1=Point((rp1.x+w*cp.x)/(1.0+w),(rp1.y+w*cp.y)/(1.0+w))
-            clipLinesInterSecting(Line(wp1, cp),True)
-            #removeLinesIntersecting(Line(wp1, cp))
-            #wall.append(Line(rp,rp1))
-            #addWall(Line(rp,rp1))
 
-        lp=lp1
-        rp=rp1
-    #cleanPoints()
+                #wall.append(Line(lp,lp1))
+
+                #addWall(Line(lp,lp1))
+
+            if (rp1!=None and rp!=None):
+                l=Line(rp1, rp)
+                #print(LineFunc(l))
+                #f=LineFunc(l)
+                #print(f)
+                #print(f.m,"x+",f.b)
+                addCombineWall(l)
+                wp1=Point((rp1.x+w*cp.x)/(1.0+w),(rp1.y+w*cp.y)/(1.0+w))
+                clipLinesInterSecting(Line(wp1, cp),True)
+                #removeLinesIntersecting(Line(wp1, cp))
+                #wall.append(Line(rp,rp1))
+                #addWall(Line(rp,rp1))
+
+            lp=lp1
+            rp=rp1
+    cleanPoints()
 
     if (len(wall)>75):
         for i in range(len(wall)-75):
@@ -356,7 +368,7 @@ def getPoint(data, dir):
     #d=get_data_array(data, dir-3,dir+3)
     #dir=240-dir
     if (r<8):
-        global x,y,points,points
+        global x,y,points
         r=r*lscale/scale
         d1=((((dir)-120)*3.14)/180.0)+orient
         #r=d.mean()*lscale/scale
