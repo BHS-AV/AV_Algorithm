@@ -34,7 +34,7 @@ def render():
     global win,front,c,x,y,orient, oldLocs,points
     c = Circle(Point(x/scale,y/scale), 10)
     c.setFill("black")
-    s="walls : ",len(wall)," "
+    s="walls : ",len(allwalls)," "
     tloc=Point(100,100)
     t=Text(tloc,s)
     front= Circle(Point(x/scale+(10*np.math.cos(orient)),y/scale+(10*np.math.sin(orient))),5)
@@ -268,6 +268,7 @@ def getLineOrient(l):
     return o
 
 def getClosestPoint(p1):
+    global points
     x=p1.getX()
     y=p1.getY()
     closest=None
@@ -403,14 +404,73 @@ def clear(win):
 
 
 def tryMakeLines():
-    for w in wall:
+    lines=[]
+    for p in points:
+        if (points.__contains__(p)):
+            c=getClosestPoint(p)
+            if (c!=None):
+                l=tryMakeLine(LineFunc(Line(c,p)))
+                if(l!=None):
+                    lines.append(l)
+    for i in range(3):
+        if (len(lines)>0):
+            b = getBestLine(lines)
+            if (b!=None):
+                addLine(b)
+                lines.remove(b)
+    '''for w in wall:
         if (wall.__contains__(w)):
             tryMakeLine(LineFunc(w))
+    '''
+
+def getBestLine(list):
+    big=list[0]
+    for l in list:
+        if (l.getSize()>big.getSize()):
+            big=l
+    return big
+
+
+def addLine(l):
+    global allwalls
+    all=l.allpoints
+    for p in all:
+        if (points.__contains__(p)):
+            points.remove(p)
+    allwalls.append(Line(l.p1,l.p2))
+
+def removeAberrantPoints(list,maxDist):
+    pass
+
+def getDistToClosestPointInList(list, p):
+    pass
 
 def tryMakeLine(f):
-    global scale, lscale
+    global scale, lscale, points
     maxdist=.5*lscale/scale
-    maxOrient=3.14/15
+
+    pointsOnLine=[]
+
+    for p in points:
+        if points.__contains__(p):
+            if (f.getDistToPoint(p)<maxdist):
+                pointsOnLine.append(p)
+
+    if (len(pointsOnLine)>5):
+        sx=pointsOnLine[0].getX()
+        ex=pointsOnLine[0].getX()
+        for p in pointsOnLine:
+            if (p.getX()<sx):
+                sx=p.getX()
+            if (p.getX()>ex):
+                ex=p.getX()
+            #points.remove(p)
+        p1 = Point(ex, f.f(ex))
+        p2 = Point(sx, f.f(sx))
+        #allwalls.append(Line(p1, p2))
+        return PointLine(pointsOnLine,p1,p2)
+    return None
+'''maxOrient=3.14/15
     wallsOnLine=[]
     slopesum=f.m
     for w in wall:
@@ -431,9 +491,22 @@ def tryMakeLine(f):
         p1=Point(ex,f.f(ex))
         p2=Point(sx,f.f(sx))
         allwalls.append(Line(p1,p2))
+    '''
 
 def getSlopeOf(l1):
     return (l1.p2.getY() - l1.p1.getY()) / ((l1.p2.getX() - l1.p1.getX()))
+
+
+class PointLine():
+    allpoints=[]
+    p1=None
+    p2=None
+    def __init__(self,points, ep1,ep2):
+        self.allpoints=points
+        self.p1=ep1
+        self.p2=ep2
+    def getSize(self):
+        return len(self.allpoints)
 
 class LineFunc():
 
@@ -464,7 +537,16 @@ class LineFunc():
         #    return True
         return False
 
-
+    def getDistToPoint(self, p=Point(0,0)):
+        x=p.getX()
+        y=p.getY()
+        m1=-1.0/self.m
+        b1=y-(m1*x)
+        x1 = (self.b - b1) / (m1 - self.m)
+        y1=self.f(x1)
+        dx=x-x1
+        dy=y-y1
+        return np.sqrt(dx*dx+dy*dy)
     
     def __repr__(self):
         return "f(x)=".format(str(self.m),"x+",str(self.b))
