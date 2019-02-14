@@ -49,6 +49,7 @@ def render():
         l.draw(win)
     for w in allwalls:
         w.setFill("blue")
+        w.draw(win)
 
     c.draw(win)
     t.draw(win)
@@ -84,9 +85,9 @@ def scanWalls(data):
         if (rp1!=None and rp!=None):
             l=Line(rp1, rp)
             #print(LineFunc(l))
-            f=LineFunc(l)
+            #f=LineFunc(l)
             #print(f)
-            print(f.m,"x+",f.b)
+            #print(f.m,"x+",f.b)
             addCombineWall(l)
             wp1=Point((rp1.x+w*cp.x)/(1.0+w),(rp1.y+w*cp.y)/(1.0+w))
             removeLinesIntersecting(Line(wp1, cp))
@@ -99,6 +100,7 @@ def scanWalls(data):
 
     if (time.time() > lt + 2):
         lt = time.time()
+        tryMakeLines()
         #avgPoints()
         #updateWalls()
         #combineSimilarLines()
@@ -191,6 +193,14 @@ def combineLines(l1,l2):
 def getLineSimilarity(l1,l2):
     m1=(l1.p2.getX()-l1.p1.getX())/(l1.p2.getY()-l1.p1.getY())
     m2=(l2.p2.getX()-l2.p1.getX())/(l2.p2.getY()-l2.p1.getY())
+    if (m1>0!=m2>0):
+        return 0
+    if (m1>m2):
+        return (m2/m1)
+    else:
+        return (m1/m2)
+
+def getSlopeSimilarity(m1,m2):
     if (m1>0!=m2>0):
         return 0
     if (m1>m2):
@@ -350,7 +360,38 @@ def clear(win):
     win.update()
 
 
-#def tryMakeLine()
+def tryMakeLines():
+    for w in wall:
+        if (wall.__contains__(w)):
+            tryMakeLine(LineFunc(w))
+
+def tryMakeLine(f):
+    global scale, lscale
+    maxdist=.5*lscale/scale
+    maxOrient=3.14/10
+    wallsOnLine=[]
+    slopesum=f.m
+    for w in wall:
+        if (f.isLineSim(w,maxdist,maxOrient)):
+            wallsOnLine.append(w)
+            #slopesum=slopesum+(getSlopeOf(w))
+
+    if (len(wallsOnLine)>10):
+        sx=wallsOnLine[0].p1.getX()
+        ex=wallsOnLine[0].p1.getX()
+        #f.m=(slopesum/len(wallsOnLine))
+        for w in wallsOnLine:
+            if(w.p1.getX()<sx):
+                sx=w.p1.getX()
+            if(w.p1.getX()>ex):
+                ex=w.p1.getX()
+            wall.remove(w)
+        p1=Point(ex,f.f(ex))
+        p2=Point(sx,f.f(sx))
+        allwalls.append(Line(p1,p2))
+
+def getSlopeOf(l1):
+    return (l1.p2.getY() - l1.p1.getY()) / ((l1.p2.getX() - l1.p1.getX()))
 
 class LineFunc():
 
@@ -359,21 +400,27 @@ class LineFunc():
     orient=None
 
     def __init__(self,l1):
-        self.m=(l1.p2.getX() - l1.p1.getX()) / ((l1.p2.getY() - l1.p1.getY())+.000001)
+        #self.m=(l1.p2.getX() - l1.p1.getX()) / ((l1.p2.getY() - l1.p1.getY()))
+        self.m=(l1.p2.getY() - l1.p1.getY()) / ((l1.p2.getX() - l1.p1.getX()))
         self.b=l1.p1.getY()-(l1.p1.getX()*self.m)
-        self.orient=np.math.atan(1.0/self.m)
+        self.orient=np.math.atan(1/self.m)
 
     def f(self,x):
         return (self.m*x)+self.b
 
-    def getLineSim(self, l1, maxDistDif, maxOrientDif):
-        global scale,lscale
+    def isLineSim(self, l1, maxDistDif, maxOrientDif):
         func=LineFunc(l1)
         orientsim=1-(abs(self.orient-func.orient)/3.14)
+        orientdif=abs(self.orient-func.orient)
+        slopesim=getSlopeSimilarity(self.m,func.m)
         dy1=self.f(l1.p1.getX())-l1.p1.getY()
         dy2=self.f(l1.p2.getX())-l1.p2.getY()
         dy=abs((dy1+dy2)/2.0)
-        #if ()
+        if (orientdif<maxOrientDif and dy<maxDistDif):
+            return True
+        #if (slopesim>.85 and dy<maxDistDif):
+        #    return True
+        return False
 
 
     
