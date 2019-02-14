@@ -350,6 +350,8 @@ def clear(win):
     win.update()
 
 
+#def tryMakeLine()
+
 class LineFunc():
 
     m = None  # slope
@@ -364,13 +366,14 @@ class LineFunc():
     def f(self,x):
         return (self.m*x)+self.b
 
-    def getLineSim(self, l1):
+    def getLineSim(self, l1, maxDistDif, maxOrientDif):
         global scale,lscale
         func=LineFunc(l1)
         orientsim=1-(abs(self.orient-func.orient)/3.14)
         dy1=self.f(l1.p1.getX())-l1.p1.getY()
         dy2=self.f(l1.p2.getX())-l1.p2.getY()
-        dy=(dy1+dy2)/2.0
+        dy=abs((dy1+dy2)/2.0)
+        #if ()
 
 
     
