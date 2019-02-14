@@ -44,7 +44,9 @@ def render():
         p=Circle(pp, 3)
         p.setFill("orange")
         p.draw(win)
-
+    for p in points:
+        p.setFill("yellow")
+        p.draw(win)
     for l in wall:
         l.draw(win)
     for w in allwalls:
@@ -75,7 +77,8 @@ def scanWalls(data):
             addCombineWall(l)
 
             wp1=Point((lp1.x+w*cp.x)/(1.0+w),(lp1.y+w*cp.y)/(1.0+w))
-            removeLinesIntersecting(Line(wp1, cp))
+            #removeLinesIntersecting(Line(wp1, cp))
+            clipLinesInterSecting(Line(wp1, cp),False)
 
 
             #wall.append(Line(lp,lp1))
@@ -90,13 +93,18 @@ def scanWalls(data):
             #print(f.m,"x+",f.b)
             addCombineWall(l)
             wp1=Point((rp1.x+w*cp.x)/(1.0+w),(rp1.y+w*cp.y)/(1.0+w))
-            removeLinesIntersecting(Line(wp1, cp))
+            clipLinesInterSecting(Line(wp1, cp),True)
+            #removeLinesIntersecting(Line(wp1, cp))
             #wall.append(Line(rp,rp1))
             #addWall(Line(rp,rp1))
 
         lp=lp1
         rp=rp1
     #cleanPoints()
+
+    if (len(wall)>75):
+        for i in range(len(wall)-75):
+            wall.remove(wall[i])
 
     if (time.time() > lt + 2):
         lt = time.time()
@@ -169,6 +177,10 @@ def removeLinesIntersecting(l1):
             #print (l1," intersects with ",w)
             wall.remove(w)
 
+def clipLinesInterSecting(l1,right):
+    for w in wall:
+        if (doLinesIntersect(l1, w)):
+            clipAtIntersect(w,l1,right)
 
 def getDistBetweenLines(l1,l2):
     xs = [l1.p1.getX(), l1.p2.getX(), l2.p1.getX(), l2.p2.getX()]
@@ -280,6 +292,24 @@ def doLinesIntersect(l1,l2):
     #print("returning false")
     return False
 
+
+def clipAtIntersect(l1,l2,right):
+    intp=getIntersectPoint(l1,l2)
+    rp=l1.p1
+    if (rp.getX()<l1.p2.getX() and right):
+        rp=l1.p2
+    wall.remove(l1)
+    wall.append(Line(rp,intp))
+
+def getIntersectPoint(l1,l2):
+    m1 = (l1.p2.getX() - l1.p1.getX()) / ((l1.p2.getY() - l1.p1.getY()) + .000001)
+    m2 = (l2.p2.getX() - l2.p1.getX()) / ((l2.p2.getY() - l2.p1.getY()) + .000001)
+    b1 = l1.p1.getY() - (m1 * l1.p1.getX())
+    b2 = l2.p1.getY() - (m2 * l2.p1.getX())
+    x = (b2 - b1) / (m1 - m2)
+    y = (x*m1)+b1
+    return Point(x,y)
+
 def avgPoints():
     i=0
     global points
@@ -368,7 +398,7 @@ def tryMakeLines():
 def tryMakeLine(f):
     global scale, lscale
     maxdist=.5*lscale/scale
-    maxOrient=3.14/10
+    maxOrient=3.14/15
     wallsOnLine=[]
     slopesum=f.m
     for w in wall:
