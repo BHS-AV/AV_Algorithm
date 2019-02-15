@@ -17,6 +17,8 @@ y=win.getHeight()/2*scale
 orient=0
 lt=time.time()
 lscale=50.0
+scantime=0
+
 
 
 oldLocs=[Point(x / scale, y / scale)]
@@ -31,7 +33,7 @@ def update(dir):
     orient=d1
 
 def render():
-    global win,front,c,x,y,orient, oldLocs,points,allwalls
+    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime
     c = Circle(Point(x/scale,y/scale), 10)
     c.setFill("black")
     s="walls : ",len(allwalls)," "
@@ -39,7 +41,10 @@ def render():
     t=Text(tloc,s)
     s1="points : ",len(points)," "
     t1loc=Point(100,200)
-    t1=Text(tloc,s1)
+    t1=Text(t1loc,s1)
+    s2="last scan time : ",scantime," s "
+    t2loc=Point(100,300)
+    t2=Text(t2loc,s2)
     front= Circle(Point(x/scale+(10*np.math.cos(orient)),y/scale+(10*np.math.sin(orient))),5)
     front.setFill("red")
     clear(win)
@@ -60,15 +65,18 @@ def render():
 
     c.draw(win)
     t.draw(win)
+    t1.draw(win)
+    t2.draw(win)
     front.draw(win)
 
 
 def scanWalls(data):
-    global orient,x,y,lt,oldLocs,points
+    global orient,x,y,lt,oldLocs,points, scantime
     if (orient==0):return
     samples=20
     lp=None
     rp=None
+    st=time.time()
 
     cp=Point(x/scale,y/scale)
 
@@ -97,6 +105,9 @@ def scanWalls(data):
     if (len(wall)>75):
         for i in range(len(wall)-75):
             wall.remove(wall[i])
+    if (len(points)>75):
+        for i in range(len(points)-75):
+            points.remove(points[i])
 
     if (time.time() > lt + 2):
         lt = time.time()
@@ -107,7 +118,7 @@ def scanWalls(data):
         oldLocs.append(Point(x / scale, y / scale))
         if(len(oldLocs)>2):
             removeLinesIntersecting(Line(oldLocs[len(oldLocs)-1],oldLocs[len(oldLocs)-2]))
-
+        scantime = time.time() - st
 
 
 #def tryCreatingLine(m,b):
@@ -316,7 +327,7 @@ def avgPoints():
 
 def cleanPoints():
     global points,lscale, scale
-    md=.45*lscale/scale #md = max distance
+    md=.25*lscale/scale #md = max distance
     mindist=.8*lscale/scale
     for p in points:
         x=p.getX()
@@ -392,7 +403,9 @@ def tryMakeLines():
                 l=tryMakeLine(LineFunc(Line(c,p)))
                 if(l!=None):
                     lines.append(l)
-    for i in range(3):
+
+    print (len(lines)," lines were found")
+    for i in range(5):
         if (len(lines)>0):
             b = getBestLine(lines)
             if (b!=None):
@@ -423,7 +436,7 @@ def addLine(l):
 def tryMakeLine(f):
     global scale, lscale, points
     maxdist=.5*lscale/scale
-    maxParrallelDist=2*lscale/scale
+    maxParrallelDist=1*lscale/scale
 
     pointsOnLine=[]
 
@@ -431,6 +444,9 @@ def tryMakeLine(f):
         if points.__contains__(p):
             if (f.getDistToPoint(p)<maxdist):
                 pointsOnLine.append(p)
+
+    if (len(pointsOnLine) < 5):
+        return None
 
     sx = pointsOnLine[0].getX()
     ex = pointsOnLine[0].getX()
@@ -443,55 +459,62 @@ def tryMakeLine(f):
 
     sp=Point(sx,f.f(sx))
     ep=Point(ex,f.f(ex))
+
+    #print "unsorted:"
+    #printPoints(pointsOnLine)
+
     l1=PointLine(pointsOnLine,sp,ep)
     l1.sortLine()
     pointsOnLine=l1.allpoints
-    for i in range(len(pointsOnLine)):
+
+    #print "sorted:"
+    #printPoints(pointsOnLine)
+
+    maxlen=len(pointsOnLine)
+    for i in range(maxlen):
         if i>0 and i<len(pointsOnLine):
             dist=distBetween(pointsOnLine[i-1],pointsOnLine[i])
             if dist>maxParrallelDist:
                 pointsOnLine=pointsOnLine[0:i]
-                i=len(pointsOnLine)
+                i=maxlen
 
 
     if (len(pointsOnLine)>5):
         sx = pointsOnLine[0].getX()
         ex = pointsOnLine[0].getX()
-
+        sy = pointsOnLine[0].getY()
+        ey = pointsOnLine[0].getY()
+        vert=abs(f.m)>1
         for p in pointsOnLine:
-            if (p.getX() < sx):
-                sx = p.getX()
-            if (p.getX() > ex):
-                ex = p.getX()
+            if vert:
+                if (p.getY() < sy):
+                    sx = p.getX()
+                    sy=p.getY()
+                if (p.getY() > ey):
+                    ex = p.getX()
+                    ey=p.getY()
+            else:
+                if (p.getX() < sx):
+                    sx = p.getX()
+                    sy=p.getY()
+                if (p.getX() > ex):
+                    ex = p.getX()
+                    ey=p.getY()
             #points.remove(p)
-        p1 = Point(ex, f.f(ex))
-        p2 = Point(sx, f.f(sx))
+        p1 = Point(ex, ey)
+        p2 = Point(sx, sy)
         #allwalls.append(Line(p1, p2))
         return PointLine(pointsOnLine,p1,p2)
     return None
-'''maxOrient=3.14/15
-    wallsOnLine=[]
-    slopesum=f.m
-    for w in wall:
-        if (f.isLineSim(w,maxdist,maxOrient)):
-            wallsOnLine.append(w)
-            #slopesum=slopesum+(getSlopeOf(w))
 
-    if (len(wallsOnLine)>10):
-        sx=wallsOnLine[0].p1.getX()
-        ex=wallsOnLine[0].p1.getX()
-        #f.m=(slopesum/len(wallsOnLine))
-        for w in wallsOnLine:
-            if(w.p1.getX()<sx):
-                sx=w.p1.getX()
-            if(w.p1.getX()>ex):
-                ex=w.p1.getX()
-            wall.remove(w)
-        p1=Point(ex,f.f(ex))
-        p2=Point(sx,f.f(sx))
-        allwalls.append(Line(p1,p2))
-    '''
-
+def printPoints(pts):
+    print ("printing points")
+    str=""
+    for p in pts:
+        x=np.round(p.getX(),2)
+        y=np.round(p.getY(),2)
+        str=str," (",x,", ",y,")"
+    print str
 def getSlopeOf(l1):
     return (l1.p2.getY() - l1.p1.getY()) / ((l1.p2.getX() - l1.p1.getX()))
 
