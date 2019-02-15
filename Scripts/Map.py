@@ -31,12 +31,15 @@ def update(dir):
     orient=d1
 
 def render():
-    global win,front,c,x,y,orient, oldLocs,points
+    global win,front,c,x,y,orient, oldLocs,points,allwalls
     c = Circle(Point(x/scale,y/scale), 10)
     c.setFill("black")
     s="walls : ",len(allwalls)," "
     tloc=Point(100,100)
     t=Text(tloc,s)
+    s1="points : ",len(points)," "
+    t1loc=Point(100,200)
+    t1=Text(tloc,s1)
     front= Circle(Point(x/scale+(10*np.math.cos(orient)),y/scale+(10*np.math.sin(orient))),5)
     front.setFill("red")
     clear(win)
@@ -71,45 +74,22 @@ def scanWalls(data):
 
     lineSamples=5
     for i in range(samples):
-
-
         lp1=getPoint(data,i*(115/samples)+5)
         rp1=getPoint(data,240-(i*(115/samples)+5))
         if (lp1!=None):
             points.append(lp1)
         if (rp1!=None):
             points.append(rp1)
-
         w=.2
-
-
         if (i%(samples/lineSamples)==0):
             if (lp1!=None and lp!=None):
                 l=Line(lp1, lp)
-                addCombineWall(l)
-
                 wp1=Point((lp1.x+w*cp.x)/(1.0+w),(lp1.y+w*cp.y)/(1.0+w))
-                #removeLinesIntersecting(Line(wp1, cp))
                 clipLinesInterSecting(Line(wp1, cp),False)
-
-
-                #wall.append(Line(lp,lp1))
-
-                #addWall(Line(lp,lp1))
-
             if (rp1!=None and rp!=None):
                 l=Line(rp1, rp)
-                #print(LineFunc(l))
-                #f=LineFunc(l)
-                #print(f)
-                #print(f.m,"x+",f.b)
-                addCombineWall(l)
                 wp1=Point((rp1.x+w*cp.x)/(1.0+w),(rp1.y+w*cp.y)/(1.0+w))
                 clipLinesInterSecting(Line(wp1, cp),True)
-                #removeLinesIntersecting(Line(wp1, cp))
-                #wall.append(Line(rp,rp1))
-                #addWall(Line(rp,rp1))
-
             lp=lp1
             rp=rp1
     cleanPoints()
@@ -438,16 +418,12 @@ def addLine(l):
         if (points.__contains__(p)):
             points.remove(p)
     allwalls.append(Line(l.p1,l.p2))
-
-def removeAberrantPoints(list,maxDist):
-    pass
-
-def getDistToClosestPointInList(list, p):
-    pass
+    l.sortLine()
 
 def tryMakeLine(f):
     global scale, lscale, points
     maxdist=.5*lscale/scale
+    maxParrallelDist=2*lscale/scale
 
     pointsOnLine=[]
 
@@ -456,14 +432,37 @@ def tryMakeLine(f):
             if (f.getDistToPoint(p)<maxdist):
                 pointsOnLine.append(p)
 
+    sx = pointsOnLine[0].getX()
+    ex = pointsOnLine[0].getX()
+
+    for p in pointsOnLine:
+        if (p.getX() < sx):
+            sx = p.getX()
+        if (p.getX() > ex):
+            ex = p.getX()
+
+    sp=Point(sx,f.f(sx))
+    ep=Point(ex,f.f(ex))
+    l1=PointLine(pointsOnLine,sp,ep)
+    l1.sortLine()
+    pointsOnLine=l1.allpoints
+    for i in range(len(pointsOnLine)):
+        if i>0 and i<len(pointsOnLine):
+            dist=distBetween(pointsOnLine[i-1],pointsOnLine[i])
+            if dist>maxParrallelDist:
+                pointsOnLine=pointsOnLine[0:i]
+                i=len(pointsOnLine)
+
+
     if (len(pointsOnLine)>5):
-        sx=pointsOnLine[0].getX()
-        ex=pointsOnLine[0].getX()
+        sx = pointsOnLine[0].getX()
+        ex = pointsOnLine[0].getX()
+
         for p in pointsOnLine:
-            if (p.getX()<sx):
-                sx=p.getX()
-            if (p.getX()>ex):
-                ex=p.getX()
+            if (p.getX() < sx):
+                sx = p.getX()
+            if (p.getX() > ex):
+                ex = p.getX()
             #points.remove(p)
         p1 = Point(ex, f.f(ex))
         p2 = Point(sx, f.f(sx))
@@ -501,10 +500,36 @@ class PointLine():
     allpoints=[]
     p1=None
     p2=None
+
     def __init__(self,points, ep1,ep2):
         self.allpoints=points
         self.p1=ep1
         self.p2=ep2
+
+    def sortLine(self):
+        #print self.allpoints
+        dx=self.p1.getX()-self.p2.getX()
+        dy=self.p1.getY()-self.p2.getY()
+        l=np.sqrt(dx*dx+dy*dy)
+
+        sorted=[]
+        num=len(self.allpoints)
+        for i in range(num):
+            sx=self.allpoints[0]
+            for p in self.allpoints:
+                if (self.locOnLine(p,l)<self.locOnLine(sx,l)):
+                    sx=p
+            sorted.append(sx)
+            self.allpoints.remove(sx)
+        self.allpoints=sorted
+
+        #print sorted
+
+    def locOnLine(self, p, l):
+        fp1=(distBetween(p,self.p1)/l)
+        fp2=1-(distBetween(p,self.p2)/l)
+        return (fp1+fp2)/2.0
+
     def getSize(self):
         return len(self.allpoints)
 
