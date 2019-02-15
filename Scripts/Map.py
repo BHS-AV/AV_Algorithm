@@ -34,8 +34,11 @@ def update(dir):
 
 def render():
     global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime
-    c = Circle(Point(x/scale,y/scale), 10)
+    c = Circle(Point(x/scale,y/scale), 7)
     c.setFill("black")
+    front = Circle(Point(x / scale + (7 * np.math.cos(orient)), y / scale + (7 * np.math.sin(orient))), 5)
+    front.setFill("red")
+
     s="walls : ",len(allwalls)," "
     tloc=Point(100,100)
     t=Text(tloc,s)
@@ -45,8 +48,7 @@ def render():
     s2="last scan time : ",scantime," s "
     t2loc=Point(100,300)
     t2=Text(t2loc,s2)
-    front= Circle(Point(x/scale+(10*np.math.cos(orient)),y/scale+(10*np.math.sin(orient))),5)
-    front.setFill("red")
+
     clear(win)
     for pp in oldLocs:
         p=Circle(pp, 3)
@@ -102,9 +104,6 @@ def scanWalls(data):
             rp=rp1
     cleanPoints()
 
-    if (len(wall)>75):
-        for i in range(len(wall)-75):
-            wall.remove(wall[i])
     if (len(points)>75):
         for i in range(len(points)-75):
             points.remove(points[i])
@@ -417,8 +416,13 @@ def tryMakeLines():
     '''
 
 def getBestLine(list):
+    global points
     big=list[0]
     for l in list:
+        for p in l.allpoints:
+            if (not points.__contains__(p)):
+                l.allpoints.remove(p)
+
         if (l.getSize()>big.getSize()):
             big=l
     return big
