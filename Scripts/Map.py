@@ -71,6 +71,39 @@ def render():
     t2.draw(win)
     front.draw(win)
 
+def getClosestLine(l1, list):
+    pts=[l1.p1,l1.p2]
+    cl=list[0]
+    if (cl==l1):cl=list[1]
+    dist=distBetween()
+    for l in list:
+        if (l!=l1):
+            pass
+            #TODO DO THIS
+
+def connectLines(l1,l2,list):
+    l1p=[l1.p1,l1.p2]
+    l2p=[l2.p1,l2.p2]
+    mp1=l1p[0]
+    mp2=l2p[0]
+    for p in l1p:
+        for p1 in l2p:
+            if (distBetween(mp1,mp2)>distBetween(p,p1)):
+                mp1=p
+                mp2=p1
+    mp=Point((mp1.getX()+mp2.getX())/2.0,(mp1.getY()+mp2.getY())/2.0)
+    ep1=l1p[0]
+    ep2=l2p[0]
+    if (ep1==mp1):
+        ep1=l1p[1]
+    if (ep2==mp2):
+        ep2=l2p[1]
+    nl1=Line(ep1,mp1)
+    nl2=Line(ep2,mp2)
+    list.remove(l1)
+    list.remove(l2)
+    list.append(nl1)
+    list.append(nl2)
 
 def scanWalls(data):
     global orient,x,y,lt,oldLocs,points, scantime
