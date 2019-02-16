@@ -24,7 +24,6 @@ scantime=0
 oldLocs=[Point(x / scale, y / scale)]
 points=[]
 #points=[]
-wall=[]
 allwalls=[]
 
 def update(dir):
@@ -59,8 +58,6 @@ def render():
         p2.setFill("yellow")
         p2.draw(win)
 
-    for l in wall:
-        l.draw(win)
     for w in allwalls:
         w.setFill("blue")
         w.draw(win)
@@ -71,17 +68,124 @@ def render():
     t2.draw(win)
     front.draw(win)
 
+def scanWalls(data):
+    global orient,x,y,lt,oldLocs,points, scantime,allwalls,wall
+    if (orient==0):return
+    samples=20
+    lp=None
+    rp=None
+    st=time.time()
+
+    if (len(points)>25):
+        for i in range(len(points)-25):
+            points.remove(points[i])
+
+    cp=Point(x/scale,y/scale)
+
+    lineSamples=5
+    for i in range(samples):
+        lp1=getPoint(data,i*(115/samples)+5)
+        rp1=getPoint(data,240-(i*(115/samples)+5))
+        if (lp1!=None):
+            points.append(lp1)
+        if (rp1!=None):
+            points.append(rp1)
+        w=.2
+        '''if (i%(samples/lineSamples)==0):
+            if (lp1!=None and lp!=None):
+                l=Line(lp1, lp)
+                wp1=Point((lp1.x+w*cp.x)/(1.0+w),(lp1.y+w*cp.y)/(1.0+w))
+                clipLinesInterSecting(Line(wp1, cp),False)
+            if (rp1!=None and rp!=None):
+                l=Line(rp1, rp)
+                wp1=Point((rp1.x+w*cp.x)/(1.0+w),(rp1.y+w*cp.y)/(1.0+w))
+                clipLinesInterSecting(Line(wp1, cp),True)
+            lp=lp1
+            rp=rp1'''
+    cleanPoints()
+
+    linesmade=False
+    if (len(points)>20):
+        tryMakeLines()
+        linesmade=True
+    if (time.time() > lt + 2):
+        lt = time.time()
+        oldLocs.append(Point(x / scale, y / scale))
+        if(len(oldLocs)>2):
+            removeLinesIntersecting(Line(oldLocs[len(oldLocs)-1],oldLocs[len(oldLocs)-2]))
+    if (linesmade):
+        scantime = time.time() - st
+
+
 def getClosestLine(l1, list):
     pts=[l1.p1,l1.p2]
     cl=list[0]
     if (cl==l1):cl=list[1]
-    dist=distBetween()
-    for l in list:
-        if (l!=l1):
-            pass
-            #TODO DO THIS
+    dist=distBetween(cl.p1,l1.p1)
+    walls = len(list)
+    scan = 10
+    if (scan > walls - 1):
+        scan = walls - 1
 
-def connectLines(l1,l2,list):
+    for i in range(scan):
+        if (walls - 1 - scan >= 0):
+            l = list[walls - 1 - scan]
+            if (l!=l1):
+                for pt in pts:
+                    d1=distBetween(pt,l.p1)
+                    d2=distBetween(pt,l.p2)
+                    if (d1<dist):
+                        dist=d1
+                        cl=l
+                    if (d2<dist):
+                        dist=d2
+                        cl=l
+    return cl
+
+def tryConnectLines():
+    global allwalls
+    walls=len(allwalls)
+    scan=10
+    if (scan>walls-1):
+        scan=walls-1
+
+    for i in range(scan):
+        if (walls-1-scan>=0):
+            l=allwalls[walls-1-scan]
+            l1 = getClosestLine(l, allwalls)
+            if (l1 != l):
+                # print (l, " is closest to ", l1)
+                if (allwalls.__contains__(l) and allwalls.__contains__(l1)):
+                    connectLines(l, l1)
+
+    for l in allwalls:
+        l1=getClosestLine(l,allwalls)
+        if (l1!=l):
+            #print (l, " is closest to ", l1)
+            if (allwalls.__contains__(l) and allwalls.__contains__(l1)):
+                connectLines(l,l1)
+
+def getShortestDistBetweenLines(l1,l2):
+    pts1=[l1.p1,l1.p2]
+    pts2=[l2.p1,l2.p2]
+    dist=distBetween(pts1[0],pts2[0])
+    for p in pts1:
+        for p1 in pts2:
+            d=distBetween(p,p1)
+            if (dist>d):
+                dist=d
+    return dist
+def getAvgDistBetweenLines(l1,l2):
+    x1=((l1.p1.getX()+l1.p2.getX())/2.0)
+    y1=((l1.p1.getY()+l1.p2.getY())/2.0)
+    x2=((l2.p1.getX()+l2.p2.getX())/2.0)
+    y2=((l2.p1.getY()+l2.p2.getY())/2.0)
+    p1=Point(x1,y1)
+    p2=Point(x2,y2)
+    return distBetween(p1,p2)
+
+def connectLines(l1,l2):
+    global wall,wallwalls
     l1p=[l1.p1,l1.p2]
     l2p=[l2.p1,l2.p2]
     mp1=l1p[0]
@@ -100,57 +204,11 @@ def connectLines(l1,l2,list):
         ep2=l2p[1]
     nl1=Line(ep1,mp1)
     nl2=Line(ep2,mp2)
-    list.remove(l1)
-    list.remove(l2)
-    list.append(nl1)
-    list.append(nl2)
+    allwalls.remove(l1)
+    allwalls.remove(l2)
+    allwalls.append(nl1)
+    allwalls.append(nl2)
 
-def scanWalls(data):
-    global orient,x,y,lt,oldLocs,points, scantime
-    if (orient==0):return
-    samples=20
-    lp=None
-    rp=None
-    st=time.time()
-
-    cp=Point(x/scale,y/scale)
-
-    lineSamples=5
-    for i in range(samples):
-        lp1=getPoint(data,i*(115/samples)+5)
-        rp1=getPoint(data,240-(i*(115/samples)+5))
-        if (lp1!=None):
-            points.append(lp1)
-        if (rp1!=None):
-            points.append(rp1)
-        w=.2
-        if (i%(samples/lineSamples)==0):
-            if (lp1!=None and lp!=None):
-                l=Line(lp1, lp)
-                wp1=Point((lp1.x+w*cp.x)/(1.0+w),(lp1.y+w*cp.y)/(1.0+w))
-                clipLinesInterSecting(Line(wp1, cp),False)
-            if (rp1!=None and rp!=None):
-                l=Line(rp1, rp)
-                wp1=Point((rp1.x+w*cp.x)/(1.0+w),(rp1.y+w*cp.y)/(1.0+w))
-                clipLinesInterSecting(Line(wp1, cp),True)
-            lp=lp1
-            rp=rp1
-    cleanPoints()
-
-    if (len(points)>75):
-        for i in range(len(points)-75):
-            points.remove(points[i])
-
-    if (time.time() > lt + 2):
-        lt = time.time()
-        tryMakeLines()
-        #avgPoints()
-        #updateWalls()
-        #combineSimilarLines()
-        oldLocs.append(Point(x / scale, y / scale))
-        if(len(oldLocs)>2):
-            removeLinesIntersecting(Line(oldLocs[len(oldLocs)-1],oldLocs[len(oldLocs)-2]))
-        scantime = time.time() - st
 
 
 #def tryCreatingLine(m,b):
@@ -204,16 +262,19 @@ def combineSimilarLines():
                                 wall.remove(l1)
                 #break
     t=time.time()-s
-    print ("combineing took ",t," and there are now ",len(wall)," walls")
+    print ("combining took ",t," and there are now ",len(wall)," walls")
 
 def removeLinesIntersecting(l1):
-    for w in wall:
-        if(doLinesIntersect(l1,w)):
-            #print (l1," intersects with ",w)
-            wall.remove(w)
+    global allwalls, scale,lscale
+    checkrad=5*lscale/scale
+    for w in allwalls:
+        if (getAvgDistBetweenLines(l1,w)<checkrad):
+            if(doLinesIntersect(l1,w)):
+                #print (l1," intersects with ",w)
+                allwalls.remove(w)
 
 def clipLinesInterSecting(l1,right):
-    for w in wall:
+    for w in allwalls:
         if (doLinesIntersect(l1, w)):
             clipAtIntersect(w,l1,right)
 
@@ -268,22 +329,6 @@ def getLineOrientSimilarity(l1,l2):
 
 
 
-def updateWalls():
-    i=0
-    global points,lscale,scale
-
-    for p in points:
-        c=getClosestPoint(p)
-        if (c!=None):
-            if(distBetween(p,c)<2*lscale/scale):
-                wall.append( Line(p, c))
-                points.remove(c)
-                points.remove(p)
-    points=points[len(points)/2:len(points)]
-    points=points[len(points)/2:len(points)]
-    points=[]
-    #test
-
 def getLineOrient(l):
     dx=l.p2.getX()-l.p1.getX()
     dy=l.p2.getY()-l.p1.getY()
@@ -334,8 +379,8 @@ def clipAtIntersect(l1,l2,right):
     rp=l1.p1
     if (rp.getX()<l1.p2.getX() and right):
         rp=l1.p2
-    wall.remove(l1)
-    wall.append(Line(rp,intp))
+    allwalls.remove(l1)
+    allwalls.append(Line(rp,intp))
 
 def getIntersectPoint(l1,l2):
     m1 = (l1.p2.getX() - l1.p1.getX()) / ((l1.p2.getY() - l1.p1.getY()) + .000001)
@@ -436,7 +481,7 @@ def tryMakeLines():
                 if(l!=None):
                     lines.append(l)
 
-    print (len(lines)," lines were found")
+    #print (len(lines)," lines were found")
     for i in range(5):
         if (len(lines)>0):
             b = getBestLine(lines)
@@ -482,7 +527,7 @@ def tryMakeLine(f):
             if (f.getDistToPoint(p)<maxdist):
                 pointsOnLine.append(p)
 
-    if (len(pointsOnLine) < 5):
+    if (len(pointsOnLine) < 4):
         return None
 
     sx = pointsOnLine[0].getX()
@@ -516,7 +561,7 @@ def tryMakeLine(f):
                 i=maxlen
 
 
-    if (len(pointsOnLine)>5):
+    if (len(pointsOnLine)>3):
         sx = pointsOnLine[0].getX()
         ex = pointsOnLine[0].getX()
         sy = pointsOnLine[0].getY()
