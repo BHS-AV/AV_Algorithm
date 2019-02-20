@@ -25,6 +25,7 @@ oldLocs=[Point(x / scale, y / scale)]
 points=[]
 #points=[]
 allwalls=[]
+wall=[]
 
 def update(dir):
     global win,front,c,x,y,orient, oldLocs
@@ -32,7 +33,7 @@ def update(dir):
     orient=d1
 
 def render():
-    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime
+    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime,wall
     c = Circle(Point(x/scale,y/scale), 7)
     c.setFill("black")
     front = Circle(Point(x / scale + (7 * np.math.cos(orient)), y / scale + (7 * np.math.sin(orient))), 5)
@@ -61,6 +62,9 @@ def render():
     for w in allwalls:
         w.setFill("blue")
         w.draw(win)
+    for w in wall:
+        w.setFill("black")
+        w.draw(win)
 
     c.draw(win)
     t.draw(win)
@@ -76,9 +80,9 @@ def scanWalls(data):
     rp=None
     st=time.time()
 
-    if (len(wall)>25):
-        addCompressWalls(wall[0:25])
-
+    if (len(allwalls)>25):
+        #addCompressWalls(allwalls)
+        pass
 
     if (len(points)>25):
         for i in range(len(points)-25):
@@ -147,7 +151,45 @@ def getClosestLine(l1, list):
     return cl
 
 def addCompressWalls(list):
-    pass
+    possibleWalls=getAllPossibleCombineWalls(list)
+    for i in range(5):
+        largest=getLargestCombine(possibleWalls)
+        possibleWalls.remove(largest)
+        removeCombineWallsFromOthers(possibleWalls,largest)
+        addCombine(largest)
+
+def addCombine(comb):
+    global wall,allwalls
+    for w in comb.subLines:
+        if (allwalls.__contains__(w)):
+            allwalls.remove(w)
+    l=comb.getLine()
+    wall.append(comb.getLine())
+    print l
+
+def removeCombineWallsFromOthers(list,wall):
+    for w in wall.subLines:
+        for i in list:
+            i.removeSubLine(w)
+
+
+def getLargestCombine(list):
+    largest=list[0]
+    for i in list:
+        if (i.getSize()>largest.getSize()):
+            largest=i
+    return largest
+
+def getAllPossibleCombineWalls(list):
+    combs=[]
+    for w in list:
+        combs.append(createCombineWall(w,list))
+    return combs
+
+def createCombineWall(line,list):
+    comb=CombineLine(line)
+    comb.createSubLines(list)
+    return comb
 
 def tryConnectLines():
     global allwalls
@@ -649,21 +691,48 @@ class PointLine():
 class CombineLine():
     linefunc=None
     subLines=[]
-    def __init__(self,lf):
-        self.linefunc=lf
+
+    def __init__(self,l1):
+        self.linefunc=LineFunc(l1)
+        self.subLines.append(l1)
+
     def createSubLines(self,list):
         global scale,lscale
         for w in list:
-            pass
-        pass
+            if (not self.subLines.__contains__(w)):
+                self.tryAddLine(w)
+
+    def removeSubLine(self, l1):
+        if self.subLines.__contains__(l1):
+            self.subLines.remove(l1)
 
     def tryAddLine(self, l1):
         global scale,lscale
         maxPerpDist=1*lscale/scale
         maxODif=10
         odif=self.linefunc.getOrientDif(l1)
+        if (odif>maxODif):
+            return
         perpdist=self.linefunc.getDistToMidPoint(l1)
+        if (perpdist<maxPerpDist):
+            self.subLines.append(l1)
 
+    def getLine(self):
+        sp=self.subLines[0].p1
+        ep=self.subLines[0].p1
+        for l in self.subLines:
+            if (l.p1.getX()<sp.getX()):
+                sp=l.p1
+            if (l.p2.getX()<sp.getX()):
+                sp=l.p2
+            if (l.p1.getX()>ep.getX()):
+                ep=l.p1
+            if (l.p2.getX()>ep.getX()):
+                ep=l.p2
+        return Line(sp,ep)
+
+    def getSize(self):
+        return len(self.subLines)
 
 class LineFunc():
 
@@ -682,11 +751,11 @@ class LineFunc():
 
     def getOrientDif(self, l1):
         func=LineFunc(l1)
-        o1=np.rad2def(self.orient)+90
-        o2=np.rad2def(func.orient)+90
+        o1=np.rad2deg(self.orient)+90
+        o2=np.rad2deg(func.orient)+90
         if (o1>o2):
-            o1=np.rad2def(func.orient)+90
-            o2=np.rad2def(self.orient)+90
+            o1=np.rad2deg(func.orient)+90
+            o2=np.rad2deg(self.orient)+90
         dor=abs(o1-o2)
         dor1=abs((o1+180)-o2)
         if (dor<dor1):
