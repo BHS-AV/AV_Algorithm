@@ -39,7 +39,7 @@ def render():
     front = Circle(Point(x / scale + (7 * np.math.cos(orient)), y / scale + (7 * np.math.sin(orient))), 5)
     front.setFill("red")
 
-    s="walls : ",len(allwalls)," "
+    s="walls : ",len(allwalls)," + ",len(wall)
     tloc=Point(100,100)
     t=Text(tloc,s)
     s1="points : ",len(points)," "
@@ -161,12 +161,13 @@ def addCompressWalls(list):
 
 def addCombine(comb):
     global wall,allwalls
+    if comb.getSize()<1:return
     for w in comb.subLines:
         if (allwalls.__contains__(w)):
             allwalls.remove(w)
     l=comb.getLine()
     wall.append(comb.getLine())
-    print l
+    #print l," orient = ",np.rad2deg(comb.linefunc.orient)
 
 def removeCombineWallsFromOthers(list,wall):
     for w in wall.subLines:
@@ -695,6 +696,7 @@ class CombineLine():
 
     def __init__(self,l1):
         self.linefunc=LineFunc(l1)
+        self.subLines=[]
         self.subLines.append(l1)
 
     def createSubLines(self,list):
@@ -709,13 +711,15 @@ class CombineLine():
 
     def tryAddLine(self, l1):
         global scale,lscale
-        maxPerpDist=1*lscale/scale
-        maxODif=5
+        maxPerpDist=.2*lscale/scale
+        maxODif=8
         odif=self.linefunc.getOrientDif(l1)
         if (odif>maxODif):
             return
         perpdist=self.linefunc.getDistToMidPoint(l1)
         if (perpdist<maxPerpDist):
+            actualperpdist=perpdist*scale/lscale
+            #print(l1," is a subline because perpdist = ",perpdist," (",actualperpdist,") and odif = ",odif)
             self.subLines.append(l1)
 
     def getLine(self):
