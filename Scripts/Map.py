@@ -81,7 +81,7 @@ def scanWalls(data):
     st=time.time()
 
     if (len(allwalls)>25):
-        #addCompressWalls(allwalls)
+        addCompressWalls(allwalls)
         pass
 
     if (len(points)>25):
@@ -154,9 +154,10 @@ def addCompressWalls(list):
     possibleWalls=getAllPossibleCombineWalls(list)
     for i in range(5):
         largest=getLargestCombine(possibleWalls)
-        possibleWalls.remove(largest)
-        removeCombineWallsFromOthers(possibleWalls,largest)
-        addCombine(largest)
+        if (largest.getSize()>0):
+            possibleWalls.remove(largest)
+            removeCombineWallsFromOthers(possibleWalls,largest)
+            addCombine(largest)
 
 def addCombine(comb):
     global wall,allwalls
@@ -709,7 +710,7 @@ class CombineLine():
     def tryAddLine(self, l1):
         global scale,lscale
         maxPerpDist=1*lscale/scale
-        maxODif=10
+        maxODif=5
         odif=self.linefunc.getOrientDif(l1)
         if (odif>maxODif):
             return
