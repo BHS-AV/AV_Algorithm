@@ -76,6 +76,10 @@ def scanWalls(data):
     rp=None
     st=time.time()
 
+    if (len(wall)>25):
+        addCompressWalls(wall[0:25])
+
+
     if (len(points)>25):
         for i in range(len(points)-25):
             points.remove(points[i])
@@ -141,6 +145,9 @@ def getClosestLine(l1, list):
                         dist=d2
                         cl=l
     return cl
+
+def addCompressWalls(list):
+    pass
 
 def tryConnectLines():
     global allwalls
@@ -407,17 +414,18 @@ def cleanPoints():
     md=.25*lscale/scale #md = max distance
     mindist=.8*lscale/scale
     for p in points:
+        if (not points.__contains__(p)):continue
         x=p.getX()
         y=p.getY()
         #print (x,y)
         for p1 in points:
-            if (p1!=p):
+            if (p1!=p and points.__contains__(p1) and points.__contains__(p)):
                 x1 = p1.getX()
                 y1 = p1.getY()
                 if(abs(x1-x)<md and abs(y1-y)<md):
                     points.remove(p1)
-        close=getClosestPoint(p)
 
+        close=getClosestPoint(p)
         if(close!=None):
             dist=distBetween(p,close)
             if (dist>mindist):
@@ -638,6 +646,25 @@ class PointLine():
     def getSize(self):
         return len(self.allpoints)
 
+class CombineLine():
+    linefunc=None
+    subLines=[]
+    def __init__(self,lf):
+        self.linefunc=lf
+    def createSubLines(self,list):
+        global scale,lscale
+        for w in list:
+            pass
+        pass
+
+    def tryAddLine(self, l1):
+        global scale,lscale
+        maxPerpDist=1*lscale/scale
+        maxODif=10
+        odif=self.linefunc.getOrientDif(l1)
+        perpdist=self.linefunc.getDistToMidPoint(l1)
+
+
 class LineFunc():
 
     m = None  # slope
@@ -653,6 +680,19 @@ class LineFunc():
     def f(self,x):
         return (self.m*x)+self.b
 
+    def getOrientDif(self, l1):
+        func=LineFunc(l1)
+        o1=np.rad2def(self.orient)+90
+        o2=np.rad2def(func.orient)+90
+        if (o1>o2):
+            o1=np.rad2def(func.orient)+90
+            o2=np.rad2def(self.orient)+90
+        dor=abs(o1-o2)
+        dor1=abs((o1+180)-o2)
+        if (dor<dor1):
+            return dor
+        return dor1
+
     def isLineSim(self, l1, maxDistDif, maxOrientDif):
         func=LineFunc(l1)
         orientsim=1-(abs(self.orient-func.orient)/3.14)
@@ -666,6 +706,9 @@ class LineFunc():
         #if (slopesim>.85 and dy<maxDistDif):
         #    return True
         return False
+
+    def getDistToMidPoint(self, line):
+        return self.getDistToPoint(line.getCenter())
 
     def getDistToPoint(self, p=Point(0,0)):
         x=p.getX()
