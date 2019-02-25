@@ -26,6 +26,8 @@ points=[]
 #points=[]
 allwalls=[]
 wall=[]
+nodes=[]
+newnodes=[]
 
 def update(dir):
     global win,front,c,x,y,orient, oldLocs
@@ -33,7 +35,7 @@ def update(dir):
     orient=d1
 
 def render():
-    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime,wall
+    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime,wall,newnodes
     c = Circle(Point(x/scale,y/scale), 7)
     c.setFill("black")
     front = Circle(Point(x / scale + (7 * np.math.cos(orient)), y / scale + (7 * np.math.sin(orient))), 5)
@@ -66,6 +68,18 @@ def render():
         w.setFill("black")
         w.draw(win)
 
+    for n in nodes:
+        n.p.setFill("green")
+        n.p.draw(win)
+        l1=n.getLine1()
+        l2=n.getLine2()
+        if (l1!=None):
+            l1.setFill("orange")
+            l1.draw(win)
+        if (l2!=None):
+            l2.setFill("orange")
+            l2.draw(win)
+
     c.draw(win)
     t.draw(win)
     t1.draw(win)
@@ -73,7 +87,7 @@ def render():
     front.draw(win)
 
 def scanWalls(data):
-    global orient,x,y,lt,oldLocs,points, scantime,allwalls,wall
+    global orient,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes,newnodes
     if (orient==0):return
     samples=20
     lp=None
@@ -96,8 +110,11 @@ def scanWalls(data):
         rp1=getPoint(data,240-(i*(115/samples)+5))
         if (lp1!=None):
             points.append(lp1)
+            #nodes.append(Node(lp1))
         if (rp1!=None):
             points.append(rp1)
+            #nodes.append(Node(rp1))
+
         w=.2
         '''if (i%(samples/lineSamples)==0):
             if (lp1!=None and lp!=None):
@@ -111,12 +128,25 @@ def scanWalls(data):
             lp=lp1
             rp=rp1'''
     cleanPoints()
+    for p in points:
+        n=Node(p)
+        nodes.append(n)
+        newnodes.append(n)
+    points=[]
+    nodes = connectNodes(nodes)
+
+    for n in newnodes:
+        removeDuplicates(n)
+    newnodes = []
 
     linesmade=False
     if (len(points)>20):
-        tryMakeLines()
+        #tryMakeLines()
         linesmade=True
     if (time.time() > lt + 2):
+        #tryConnectLines()
+
+        cleanNodes()
         lt = time.time()
         oldLocs.append(Point(x / scale, y / scale))
         if(len(oldLocs)>2):
@@ -124,8 +154,14 @@ def scanWalls(data):
     if (linesmade):
         scantime = time.time() - st
 
+def removeDuplicates(n1):
+    global nodes
+    for n in nodes:
+        if (n!=n1):
+            if (n1.equals(n)):
+                nodes.remove(n)
 
-def getClosestLine(l1, list):
+def getClosestLine(l1, list, excluded=None):
     pts=[l1.p1,l1.p2]
     cl=list[0]
     if (cl==l1):cl=list[1]
@@ -138,7 +174,7 @@ def getClosestLine(l1, list):
     for i in range(scan):
         if (walls - 1 - scan >= 0):
             l = list[walls - 1 - scan]
-            if (l!=l1):
+            if (l!=l1 and l!=excluded):
                 for pt in pts:
                     d1=distBetween(pt,l.p1)
                     d2=distBetween(pt,l.p2)
@@ -214,7 +250,9 @@ def tryConnectLines():
         if (l1!=l):
             #print (l, " is closest to ", l1)
             if (allwalls.__contains__(l) and allwalls.__contains__(l1)):
-                connectLines(l,l1)
+                lines=connectLines(l,l1)
+                l2=getClosestLine(lines[0],allwalls,lines[1])
+                connectLines(lines[0],l2)
 
 def getShortestDistBetweenLines(l1,l2):
     pts1=[l1.p1,l1.p2]
@@ -259,6 +297,7 @@ def connectLines(l1,l2):
     allwalls.remove(l2)
     allwalls.append(nl1)
     allwalls.append(nl2)
+    return [nl1,nl2]
 
 
 
@@ -386,14 +425,14 @@ def getLineOrient(l):
     o=np.math.atan2(dy,dx)
     return o
 
-def getClosestPoint(p1):
+def getClosestPoint(p1, exclude=None):
     global points
     x=p1.getX()
     y=p1.getY()
     closest=None
     closest_dist=10000
     for p in points:
-        if (p!=p1):
+        if (p!=p1 and p!=exclude):
             dx=p.getX()-x
             dy=p.getY()-y
             dist=np.math.sqrt(dx*dx+dy*dy)
@@ -402,7 +441,29 @@ def getClosestPoint(p1):
                 #print ("new closest dist is ",closest_dist)
                 closest_dist=dist
 
-    global scale, lscale
+    #global scale, lscale
+    #if (dist>6*lscale/scale):
+    #    return None
+
+    return closest
+
+def getClosestPointInList(p1, list, exclude=None):
+    global points
+    x=p1.getX()
+    y=p1.getY()
+    closest=None
+    closest_dist=10000
+    for p in list:
+        if (p!=p1 and p!=exclude):
+            dx=p.getX()-x
+            dy=p.getY()-y
+            dist=np.math.sqrt(dx*dx+dy*dy)
+            if(dist<closest_dist):
+                closest=p
+                #print ("new closest dist is ",closest_dist)
+                closest_dist=dist
+
+    #global scale, lscale
     #if (dist>6*lscale/scale):
     #    return None
 
@@ -651,6 +712,121 @@ def printPoints(pts):
     print str
 def getSlopeOf(l1):
     return (l1.p2.getY() - l1.p1.getY()) / ((l1.p2.getX() - l1.p1.getX()))
+
+def connectNodes(list):
+    global scale,lscale
+    maxdist=1*lscale/scale
+    for n in list:
+        if (n.hasDisconnect()==True):
+            n.connectWithClosest(list,maxdist)
+
+    return list
+
+
+
+def cleanNodes():
+    global nodes,scale,lscale
+    maxdist=1*lscale/scale
+    for n in nodes:
+        if(not n.hasDisconnect()):
+            dx=n.n1.p.x-n.n2.p.x
+            dy=n.n1.p.y-n.n2.p.y
+            dist=np.sqrt(dx*dx+dy*dy)
+            if dist<maxdist:
+                n.n1.replaceNWith(n,n.n2)
+                n.n2.replaceNWith(n,n.n1)
+
+
+
+class Node():
+    p=None
+    n1=None
+    n2=None
+
+    def __init__(self,p1):
+        self.p=p1
+
+    def replaceNWith(self,cn,nn):
+        if self.n1==cn:
+            self.n1=nn
+        elif self.n2==cn:
+            self.n2=nn
+
+    def hasDisconnect(self):
+        return self.n1==None or self.n2==None
+
+    def connectWithClosest(self,nodes, maxdist):
+        c1=self.n1
+        if c1==None:
+            c1dist=100000
+
+            for n in nodes:
+                if n!=self:
+                    dx=(self.p.x-n.p.x)
+                    dy=(self.p.y-n.p.y)
+                    dist=np.sqrt(dx*dx+dy*dy)
+                    if dist<c1dist:
+                        c1=n
+                        c1dist=dist
+            if c1dist < maxdist and c1 != None:
+                self.n1 = c1
+                self.n1.tryAddNode(self)
+        c2 = self.n2
+        if c2==None:
+            c2dist = 100000
+            for n in nodes:
+                if n!=self and n!=c1:
+                    dx=(self.p.x-n.p.x)
+                    dy=(self.p.y-n.p.y)
+                    dist=np.sqrt(dx*dx+dy*dy)
+                    if dist<c2dist:
+                        c2=n
+                        c2dist=dist
+            if c2dist < maxdist and c2 != None:
+                self.n2 = c2
+                self.n2.tryAddNode(self)
+
+
+    def equals(self,node1):
+        return ( self.n1==node1.n1 and self.n2==node1.n2) or ( self.n1==node1.n2 and self.n2==node1.n1)
+
+    def tryAddNode(self, n):
+        if (self.n1==None):
+            self.n1=n
+        elif (self.n2==None):
+            self.n2=n
+        else:
+            d1=self.distToNode(self.n1)
+            d2=self.distToNode(self.n2)
+            d3=self.distToNode(self.n3)
+            if (d3<d1 or d3<d2):
+                if d2>d1:
+                    self.n2=n
+                else:
+                    self.n1=n
+
+
+
+
+    def distToNode(self, n):
+        dx = self.p.x - n.p.x
+        dy = self.p.y - n.p.y
+        return np.sqrt(dx*dx+dy*dy)
+
+    def getLine1(self):
+        if(self.n1==None):
+            return None
+        return Line(self.p,self.n1.p)
+
+    def getLine2(self):
+        if(self.n2==None):
+            return None
+        return Line(self.p,self.n2.p)
+
+    def setNode1(self,n1):
+        self.n1=n1
+    def setNode2(self,n2):
+        self.n2=n2
 
 
 class PointLine():
