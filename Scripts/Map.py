@@ -50,40 +50,35 @@ def render():
     s2="last scan time : ",scantime," s "
     t2loc=Point(100,300)
     t2=Text(t2loc,s2)
+    s3="nodes : ",len(nodes)," s "
+    t3loc=Point(100,400)
+    t3=Text(t3loc,s3)
 
     clear(win)
     for pp in oldLocs:
         p=Circle(pp, 3)
         p.setFill("orange")
         p.draw(win)
-    for p1 in points:
-        p2 = Circle(p1, 3)
-        p2.setFill("yellow")
-        p2.draw(win)
-
-    for w in allwalls:
-        w.setFill("blue")
-        w.draw(win)
-    for w in wall:
-        w.setFill("black")
-        w.draw(win)
 
     for n in nodes:
-        n.p.setFill("green")
-        n.p.draw(win)
+        p2 = Circle(n.p, 1)
+        p2.setFill("blue")
+        p2.draw(win)
+
         l1=n.getLine1()
         l2=n.getLine2()
         if (l1!=None):
-            l1.setFill("orange")
+            l1.setFill("green")
             l1.draw(win)
         if (l2!=None):
-            l2.setFill("orange")
+            l2.setFill("green")
             l2.draw(win)
 
     c.draw(win)
     t.draw(win)
     t1.draw(win)
     t2.draw(win)
+    t3.draw(win)
     front.draw(win)
 
 def scanWalls(data):
@@ -137,22 +132,16 @@ def scanWalls(data):
 
     for n in newnodes:
         removeDuplicates(n)
+
     newnodes = []
 
-    linesmade=False
-    if (len(points)>20):
-        #tryMakeLines()
-        linesmade=True
-    if (time.time() > lt + 2):
-        #tryConnectLines()
-
+    removeAbsentNodes()
+    if (time.time() > lt + .5):
         cleanNodes()
         lt = time.time()
         oldLocs.append(Point(x / scale, y / scale))
-        if(len(oldLocs)>2):
-            removeLinesIntersecting(Line(oldLocs[len(oldLocs)-1],oldLocs[len(oldLocs)-2]))
-    if (linesmade):
         scantime = time.time() - st
+
 
 def removeDuplicates(n1):
     global nodes
@@ -714,43 +703,86 @@ def getSlopeOf(l1):
     return (l1.p2.getY() - l1.p1.getY()) / ((l1.p2.getX() - l1.p1.getX()))
 
 def connectNodes(list):
-    global scale,lscale
-    maxdist=1*lscale/scale
+    global scale,lscale,nodes
+    maxdist=.5*lscale/scale
     for n in list:
         if (n.hasDisconnect()==True):
             n.connectWithClosest(list,maxdist)
-
+            if(n.hasNoConnected()):
+                list.remove(n)
     return list
 
 
 
 def cleanNodes():
     global nodes,scale,lscale
-    maxdist=1*lscale/scale
+    maxdist=2*lscale/scale
     for n in nodes:
         if(not n.hasDisconnect()):
-            dx=n.n1.p.x-n.n2.p.x
-            dy=n.n1.p.y-n.n2.p.y
-            dist=np.sqrt(dx*dx+dy*dy)
-            if dist<maxdist:
-                n.n1.replaceNWith(n,n.n2)
-                n.n2.replaceNWith(n,n.n1)
+            if(n.doConnectedNodesConnectBack() and n.areConnectedInList(nodes)):
+                dx=n.n1.p.x-n.n2.p.x
+                dy=n.n1.p.y-n.n2.p.y
+                dist=np.sqrt(dx*dx+dy*dy)
+                if dist<maxdist:
+                    n.n1.replaceNWith(n,n.n2)
+                    n.n2.replaceNWith(n,n.n1)
+                    n.removeOtherConnected()
+                    nodes.remove(n)
 
+
+def removeAbsentNodes():
+    global nodes
+    for n in nodes:
+        if (not nodes.__contains__(n.n1)):
+            n.n1=None;
+        if (not nodes.__contains__(n.n2)):
+            n.n2=None;
 
 
 class Node():
     p=None
     n1=None
     n2=None
+    otherConnected=[]
 
     def __init__(self,p1):
         self.p=p1
+
+    def areConnectedInList(self, list):
+        return list.__contains__(self.n1) and list.__contains__(self.n2)
+
+    def hasNoConnected(self):
+        return self.n1==None and self.n2==None
 
     def replaceNWith(self,cn,nn):
         if self.n1==cn:
             self.n1=nn
         elif self.n2==cn:
             self.n2=nn
+
+    def removeOtherConnected(self):
+        global nodes
+        for n in self.otherConnected:
+            if nodes.__contains__(n):
+                if(n.isNodeTheOnlyConnected(self)):
+                    nodes.remove(n)
+                else:
+                    n.removeNode(self)
+
+            else:
+                self.otherConnected.remove(n)
+
+    def removeNode(self,node):
+        if(self.n1==node):
+            self.n1=None
+        if(self.n2==node):
+            self.n2=None
+
+    def isNodeTheOnlyConnected(self,node):
+        return (self.n1==node and self.n2==None) or (self.n2==node and self.n1==None)
+
+    def doConnectedNodesConnectBack(self):
+        return self.n1.contains(self) and self.n2.contains(self)
 
     def hasDisconnect(self):
         return self.n1==None or self.n2==None
@@ -769,8 +801,10 @@ class Node():
                         c1=n
                         c1dist=dist
             if c1dist < maxdist and c1 != None:
-                self.n1 = c1
-                self.n1.tryAddNode(self)
+                '''self.n1 = c1
+                self.n1.tryAddNode(self)'''
+                if (c1.tryAddNode(self)):
+                    self.n1 = c1
         c2 = self.n2
         if c2==None:
             c2dist = 100000
@@ -783,9 +817,10 @@ class Node():
                         c2=n
                         c2dist=dist
             if c2dist < maxdist and c2 != None:
-                self.n2 = c2
-                self.n2.tryAddNode(self)
-
+                '''self.n2 = c2
+                self.n2.tryAddNode(self)'''
+                if (c2.tryAddNode(self)):
+                    self.n2 = c2
 
     def equals(self,node1):
         return ( self.n1==node1.n1 and self.n2==node1.n2) or ( self.n1==node1.n2 and self.n2==node1.n1)
@@ -793,25 +828,36 @@ class Node():
     def tryAddNode(self, n):
         if (self.n1==None):
             self.n1=n
+            return True
         elif (self.n2==None):
             self.n2=n
-        else:
+            return True
+
+        '''else:
             d1=self.distToNode(self.n1)
             d2=self.distToNode(self.n2)
-            d3=self.distToNode(self.n3)
+            d3=self.distToNode(n)
             if (d3<d1 or d3<d2):
                 if d2>d1:
                     self.n2=n
+                    return True
                 else:
                     self.n1=n
+                    return True'''
+        #self.otherConnected.append(n)
+        return False
 
-
+    def noOtherConnected(self):
+        return len(self.otherConnected)==0
 
 
     def distToNode(self, n):
         dx = self.p.x - n.p.x
         dy = self.p.y - n.p.y
         return np.sqrt(dx*dx+dy*dy)
+
+    def contains(self, node):
+        return self.n1==node or self.n2==node
 
     def getLine1(self):
         if(self.n1==None):
