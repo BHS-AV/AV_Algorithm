@@ -733,7 +733,7 @@ def cleanNodes():
     maxdist=3*lscale/scale
     removeTriangles()
     removeBranches()
-
+    resetLargeNodes()
     for n in nodes:
         if(not n.hasDisconnect()):
             if(len(n.cn)==2):
@@ -796,6 +796,15 @@ def removeBranches():
                 n.cn[0].removeNode(n)
                 nodes.remove(n)
 
+def resetLargeNodes():
+    global nodes, scale, lscale
+    maxdist = 3 * lscale / scale
+    global nodes
+    for n in nodes:
+        if len(n.cn)>3:
+            n.resetNode(nodes,maxdist)
+
+
 class Node():
     p=None
     #n1=None
@@ -841,6 +850,11 @@ class Node():
         if(self.cn.__contains__(node)):
             self.cn.remove(node)
 
+    def resetNode(self,list,maxdist):
+        for node in self.cn:
+            node.removeNode(self)
+            self.cn.remove(node)
+        self.connectWithClosest(list,maxdist)
 
     def isNodeTheOnlyConnected(self,node):
         return len(self.cn)==1 and self.cn.__contains__(node)
