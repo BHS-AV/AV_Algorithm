@@ -42,10 +42,11 @@ def render():
     front.setFill("red")
 
     s2="last scan time : ",scantime," s "
-    t2loc=Point(300,100)
+    t2loc=Point(500,75)
     t2=Text(t2loc,s2)
-    s3="nodes : ",len(nodes)," s, with size of ",getAvgNodeNet(),", ",numNodesOver2()," over 2"
-    t3loc=Point(300,200)
+    #s3="nodes : ",len(nodes)," s, with size of ",getAvgNodeNet(),", ",numNodesOver2()," over 2"
+    s3=getTotalNodeData()
+    t3loc=Point(500,150)
     t3=Text(t3loc,s3)
 
     clear(win)
@@ -702,7 +703,7 @@ def getSlopeOf(l1):
 
 def connectNodes(list):
     global scale,lscale,nodes
-    maxdist=.5*lscale/scale
+    maxdist=.75*lscale/scale
     for n in list:
         #n.printNode()
         if (n.hasDisconnect()):
@@ -729,19 +730,33 @@ def connectTwoNodes(n1,n2):
 
 def cleanNodes():
     global nodes,scale,lscale
-    maxdist=2*lscale/scale
+    maxdist=3*lscale/scale
     removeTriangles()
+    removeBranches()
 
     for n in nodes:
         if(not n.hasDisconnect()):
             if(len(n.cn)==2):
                 dist=n.cn[0].distToNode(n.cn[1])
                 if(dist<maxdist):
-                    print ("removing ", n.printNode())
+                    #print ("removing ", n.printNode())
                     n.cn[0].replaceNWith(n, n.cn[1])
                     n.cn[1].replaceNWith(n, n.cn[0])
                     if (nodes.__contains__(n)):
                         nodes.remove(n)
+
+
+def getTotalNodeData():
+    global nodes
+    leng=len(nodes)
+    avgsize=getAvgNodeNet()
+    nodelen=[0,0,0,0,0,0,0]
+    for n in nodes:
+        nl=len(n.cn)
+        if nl<7:
+            nodelen[nl]=nodelen[nl]+1
+    str=leng,' nodes : 0-',nodelen[0],', 1-',nodelen[1],', 2-',nodelen[2],', 3-',nodelen[3],', 4-',nodelen[4],', 5-',nodelen[5],', 6-',nodelen[6]
+    return str
 
 
 def getAvgNodeNet():
@@ -764,10 +779,23 @@ def removeTriangles():
     global nodes
     for n in nodes:
         if len(n.cn)==2:
-            if n.cn[0].contains(n.cn[1]):
+            if n.cn[0].contains(n.cn[1]) and n.cn[1].contains(n.cn[0]):
                 n.cn[0].removeNode(n)
-                n.cn[1].removeNode(n)
+                if(len(n.cn)==2):
+                    n.cn[1].removeNode(n)
+                else:
+                    n.cn[0].removeNode(n)
+
                 nodes.remove(n)
+
+def removeBranches():
+    global nodes
+    for n in nodes:
+        if len(n.cn) == 1:
+            if (len(n.cn[0].cn)>2):
+                n.cn[0].removeNode(n)
+                nodes.remove(n)
+
 class Node():
     p=None
     #n1=None
