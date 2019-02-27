@@ -2,13 +2,8 @@ import numpy as np
 
 from graphics import *
 
-#from Scripts.graphics import Circle, Point
-
 win = GraphWin("My Circle", 1000, 1000)
 
-#if __name__=="__main__":
-    #global win
-    #win = GraphWin("My Circle", 100, 100)
 c=None
 front=None
 scale=4
@@ -55,6 +50,11 @@ def render():
         p.setFill("orange")
         p.draw(win)
 
+    for pp in points:
+        p=Circle(pp, 3)
+        p.setFill("orange")
+        p.draw(win)
+
     for n in nodes:
         p2 = Circle(n.p, 1)
         p2.setFill("blue")
@@ -78,14 +78,11 @@ def scanWalls(data):
     rp=None
     st=time.time()
 
-    if (len(allwalls)>25):
-        addCompressWalls(allwalls)
-        pass
 
     if (len(points)>25):
         for i in range(len(points)-25):
             points.remove(points[i])
-
+            pass
     cp=Point(x/scale,y/scale)
 
     lineSamples=5
@@ -114,9 +111,9 @@ def scanWalls(data):
     cleanPoints()
     for p in points:
         n=Node(p)
-        #print 'just created a node, it already has l',len(n.cn)
         nodes.append(n)
         newnodes.append(n)
+
     points=[]
     nodes = connectNodes(nodes)
 
@@ -127,7 +124,6 @@ def scanWalls(data):
 
     removeAbsentNodes()
     if (time.time() > lt + .5):
-        #connectVeryClose()
         cleanNodes()
         lt = time.time()
         oldLocs.append(Point(x / scale, y / scale))
@@ -136,186 +132,12 @@ def scanWalls(data):
 
 def removeDuplicates(n1):
     global nodes
-    for n in nodes:
-        if (n!=n1):
-            if (n1.equals(n)):
-                nodes.remove(n)
+    if (len(n1.cn)>1):
+        for n in nodes:
+            if (n!=n1):
+                if (n1.equals(n)):
+                    nodes.remove(n)
 
-def getClosestLine(l1, list, excluded=None):
-    pts=[l1.p1,l1.p2]
-    cl=list[0]
-    if (cl==l1):cl=list[1]
-    dist=distBetween(cl.p1,l1.p1)
-    walls = len(list)
-    scan = 10
-    if (scan > walls - 1):
-        scan = walls - 1
-
-    for i in range(scan):
-        if (walls - 1 - scan >= 0):
-            l = list[walls - 1 - scan]
-            if (l!=l1 and l!=excluded):
-                for pt in pts:
-                    d1=distBetween(pt,l.p1)
-                    d2=distBetween(pt,l.p2)
-                    if (d1<dist):
-                        dist=d1
-                        cl=l
-                    if (d2<dist):
-                        dist=d2
-                        cl=l
-    return cl
-
-def numNodesOver2():
-    global nodes
-    sum=0
-    for n in nodes:
-        if len(n.cn)>2:
-            sum=sum+1
-    return sum
-
-def addCompressWalls(list):
-    possibleWalls=getAllPossibleCombineWalls(list)
-    for i in range(5):
-        largest=getLargestCombine(possibleWalls)
-        if (largest.getSize()>0):
-            possibleWalls.remove(largest)
-            removeCombineWallsFromOthers(possibleWalls,largest)
-            addCombine(largest)
-
-def addCombine(comb):
-    global wall,allwalls
-    if comb.getSize()<1:return
-    for w in comb.subLines:
-        if (allwalls.__contains__(w)):
-            allwalls.remove(w)
-    l=comb.getLine()
-    wall.append(comb.getLine())
-    #print l," orient = ",np.rad2deg(comb.linefunc.orient)
-
-def removeCombineWallsFromOthers(list,wall):
-    for w in wall.subLines:
-        for i in list:
-            i.removeSubLine(w)
-
-
-def getLargestCombine(list):
-    largest=list[0]
-    for i in list:
-        if (i.getSize()>largest.getSize()):
-            largest=i
-    return largest
-
-def getAllPossibleCombineWalls(list):
-    combs=[]
-    for w in list:
-        combs.append(createCombineWall(w,list))
-    return combs
-
-def createCombineWall(line,list):
-    comb=CombineLine(line)
-    comb.createSubLines(list)
-    return comb
-
-def tryConnectLines():
-    global allwalls
-    walls=len(allwalls)
-    scan=10
-    if (scan>walls-1):
-        scan=walls-1
-
-    for i in range(scan):
-        if (walls-1-scan>=0):
-            l=allwalls[walls-1-scan]
-            l1 = getClosestLine(l, allwalls)
-            if (l1 != l):
-                # print (l, " is closest to ", l1)
-                if (allwalls.__contains__(l) and allwalls.__contains__(l1)):
-                    connectLines(l, l1)
-
-    for l in allwalls:
-        l1=getClosestLine(l,allwalls)
-        if (l1!=l):
-            #print (l, " is closest to ", l1)
-            if (allwalls.__contains__(l) and allwalls.__contains__(l1)):
-                lines=connectLines(l,l1)
-                l2=getClosestLine(lines[0],allwalls,lines[1])
-                connectLines(lines[0],l2)
-
-def getShortestDistBetweenLines(l1,l2):
-    pts1=[l1.p1,l1.p2]
-    pts2=[l2.p1,l2.p2]
-    dist=distBetween(pts1[0],pts2[0])
-    for p in pts1:
-        for p1 in pts2:
-            d=distBetween(p,p1)
-            if (dist>d):
-                dist=d
-    return dist
-def getAvgDistBetweenLines(l1,l2):
-    x1=((l1.p1.getX()+l1.p2.getX())/2.0)
-    y1=((l1.p1.getY()+l1.p2.getY())/2.0)
-    x2=((l2.p1.getX()+l2.p2.getX())/2.0)
-    y2=((l2.p1.getY()+l2.p2.getY())/2.0)
-    p1=Point(x1,y1)
-    p2=Point(x2,y2)
-    return distBetween(p1,p2)
-
-def connectLines(l1,l2):
-    global wall,wallwalls
-    l1p=[l1.p1,l1.p2]
-    l2p=[l2.p1,l2.p2]
-    mp1=l1p[0]
-    mp2=l2p[0]
-    for p in l1p:
-        for p1 in l2p:
-            if (distBetween(mp1,mp2)>distBetween(p,p1)):
-                mp1=p
-                mp2=p1
-    mp=Point((mp1.getX()+mp2.getX())/2.0,(mp1.getY()+mp2.getY())/2.0)
-    ep1=l1p[0]
-    ep2=l2p[0]
-    if (ep1==mp1):
-        ep1=l1p[1]
-    if (ep2==mp2):
-        ep2=l2p[1]
-    nl1=Line(ep1,mp1)
-    nl2=Line(ep2,mp2)
-    allwalls.remove(l1)
-    allwalls.remove(l2)
-    allwalls.append(nl1)
-    allwalls.append(nl2)
-    return [nl1,nl2]
-
-
-
-#def tryCreatingLine(m,b):
-    
-
-
-def addCombineWall(l):
-    for l1 in wall:
-        if (doLinesIntersect(l,l1)):
-            combineLines(l1,l)
-            return
-    wall.append(l)
-
-    pass
-
-def addWall(l1):
-    global lscale,scale
-
-    maxdist=1.0*lscale/scale
-    for w in wall:
-        if (l1 != w):
-            sim = getLineOrientSimilarity(w, l1)
-            if (sim > .9 and sim < 1.01):
-                dist = getDistBetweenLines(w, l1)
-                if (maxdist > dist):
-                    wall.append(combineLines(w, l1))
-                    wall.remove(w)
-                    return
-    wall.append(l1)
 
 def combineSimilarLines():
     print ("there are currently ", len(wall)," walls")
@@ -342,14 +164,6 @@ def combineSimilarLines():
     t=time.time()-s
     print ("combining took ",t," and there are now ",len(wall)," walls")
 
-def removeLinesIntersecting(l1):
-    global allwalls, scale,lscale
-    checkrad=5*lscale/scale
-    for w in allwalls:
-        if (getAvgDistBetweenLines(l1,w)<checkrad):
-            if(doLinesIntersect(l1,w)):
-                #print (l1," intersects with ",w)
-                allwalls.remove(w)
 
 def clipLinesInterSecting(l1,right):
     for w in allwalls:
@@ -516,14 +330,17 @@ def cleanPoints():
                 x1 = p1.getX()
                 y1 = p1.getY()
                 if(abs(x1-x)<md and abs(y1-y)<md):
+                    np=Point((p.x+p1.x)/2,(p.y+p1.y)/2)
                     points.remove(p1)
+                    points.remove(p)
+                    points.append(np)
 
-        close=getClosestPoint(p)
+        '''close=getClosestPoint(p)
         if(close!=None):
             dist=distBetween(p,close)
             if (dist>mindist):
                 points.remove(p)
-
+        '''
 
 
 def distBetween(p1=Point(0,0),p2=Point(0,0)):
@@ -571,139 +388,12 @@ def clear(win):
         item.undraw()
     win.update()
 
-
-def tryMakeLines():
-    lines=[]
-    for p in points:
-        if (points.__contains__(p)):
-            c=getClosestPoint(p)
-            if (c!=None):
-                l=tryMakeLine(LineFunc(Line(c,p)))
-                if(l!=None):
-                    lines.append(l)
-
-    #print (len(lines)," lines were found")
-    for i in range(5):
-        if (len(lines)>0):
-            b = getBestLine(lines)
-            if (b!=None):
-                addLine(b)
-                lines.remove(b)
-    '''for w in wall:
-        if (wall.__contains__(w)):
-            tryMakeLine(LineFunc(w))
-    '''
-
-def getBestLine(list):
-    global points
-    big=list[0]
-    for l in list:
-        for p in l.allpoints:
-            if (not points.__contains__(p)):
-                l.allpoints.remove(p)
-
-        if (l.getSize()>big.getSize()):
-            big=l
-    return big
-
-
-def addLine(l):
-    global allwalls
-    all=l.allpoints
-    for p in all:
-        if (points.__contains__(p)):
-            points.remove(p)
-    allwalls.append(Line(l.p1,l.p2))
-    l.sortLine()
-
-def tryMakeLine(f):
-    global scale, lscale, points
-    maxdist=.5*lscale/scale
-    maxParrallelDist=1*lscale/scale
-
-    pointsOnLine=[]
-
-    for p in points:
-        if points.__contains__(p):
-            if (f.getDistToPoint(p)<maxdist):
-                pointsOnLine.append(p)
-
-    if (len(pointsOnLine) < 4):
-        return None
-
-    sx = pointsOnLine[0].getX()
-    ex = pointsOnLine[0].getX()
-
-    for p in pointsOnLine:
-        if (p.getX() < sx):
-            sx = p.getX()
-        if (p.getX() > ex):
-            ex = p.getX()
-
-    sp=Point(sx,f.f(sx))
-    ep=Point(ex,f.f(ex))
-
-    #print "unsorted:"
-    #printPoints(pointsOnLine)
-
-    l1=PointLine(pointsOnLine,sp,ep)
-    l1.sortLine()
-    pointsOnLine=l1.allpoints
-
-    #print "sorted:"
-    #printPoints(pointsOnLine)
-
-    maxlen=len(pointsOnLine)
-    for i in range(maxlen):
-        if i>0 and i<len(pointsOnLine):
-            dist=distBetween(pointsOnLine[i-1],pointsOnLine[i])
-            if dist>maxParrallelDist:
-                pointsOnLine=pointsOnLine[0:i]
-                i=maxlen
-
-
-    if (len(pointsOnLine)>3):
-        sx = pointsOnLine[0].getX()
-        ex = pointsOnLine[0].getX()
-        sy = pointsOnLine[0].getY()
-        ey = pointsOnLine[0].getY()
-        vert=abs(f.m)>1
-        for p in pointsOnLine:
-            if vert:
-                if (p.getY() < sy):
-                    sx = p.getX()
-                    sy=p.getY()
-                if (p.getY() > ey):
-                    ex = p.getX()
-                    ey=p.getY()
-            else:
-                if (p.getX() < sx):
-                    sx = p.getX()
-                    sy=p.getY()
-                if (p.getX() > ex):
-                    ex = p.getX()
-                    ey=p.getY()
-            #points.remove(p)
-        p1 = Point(ex, ey)
-        p2 = Point(sx, sy)
-        #allwalls.append(Line(p1, p2))
-        return PointLine(pointsOnLine,p1,p2)
-    return None
-
-def printPoints(pts):
-    print ("printing points")
-    str=""
-    for p in pts:
-        x=np.round(p.getX(),2)
-        y=np.round(p.getY(),2)
-        str=str," (",x,", ",y,")"
-    print str
 def getSlopeOf(l1):
     return (l1.p2.getY() - l1.p1.getY()) / ((l1.p2.getX() - l1.p1.getX()))
 
 def connectNodes(list):
     global scale,lscale,nodes
-    maxdist=.75*lscale/scale
+    maxdist=1.2*lscale/scale
     for n in list:
         #n.printNode()
         if (n.hasDisconnect()):
@@ -739,6 +429,10 @@ def cleanNodes():
             if(len(n.cn)==2):
                 dist=n.cn[0].distToNode(n.cn[1])
                 if(dist<maxdist):
+                    '''nfunc1=NodalFunc(n,n.cn[0])
+                    nfunc2=NodalFunc(n,n.cn[1])
+                    odif=nfunc1.getOrientDif(nfunc2)
+                    if odif<45:'''
                     #print ("removing ", n.printNode())
                     n.cn[0].replaceNWith(n, n.cn[1])
                     n.cn[1].replaceNWith(n, n.cn[0])
@@ -773,6 +467,7 @@ def removeAbsentNodes():
     for n in nodes:
         for n1 in n.cn:
             if not nodes.__contains__(n1):
+                #print ("phantom node deleted")
                 n.cn.remove(n1)
 
 def removeTriangles():
@@ -812,8 +507,12 @@ class Node():
     #otherConnected=[]
     cn=[]
     def __init__(self,p1):
+        global scale, lscale,nodes
+        maxInit=.5*lscale/scale
         self.p=p1
         self.cn=[]
+        self.connectWithClosest(nodes,maxInit)
+
 
     def areConnectedInList(self, list):
         for n in self.cn:
@@ -933,6 +632,50 @@ class Node():
         return lines
 
 
+class NodalFunc():
+    m = None  # slope
+    b = None  # y intercept
+    orient = None
+    n1=None
+    n2=None
+
+    def __init__(self, n1,n2):
+        self.n1=n1
+        self.n2=n2
+        self.m = (n2.p.y - n1.p.y) / ((n2.p.x - n1.p.x))
+        self.b = n1.p.y - (n1.p.x * self.m)
+        self.orient = np.math.atan(1 / self.m)
+
+    def f(self, x):
+        return (self.m * x) + self.b
+
+    def getOrientDif(self, nfunc):
+        o1 = np.rad2deg(self.orient) + 90
+        o2 = np.rad2deg(nfunc.orient) + 90
+        if (o1 > o2):
+            o1 = np.rad2deg(nfunc.orient) + 90
+            o2 = np.rad2deg(self.orient) + 90
+        dor = abs(o1 - o2)
+        dor1 = abs((o1 + 180) - o2)
+        if (dor < dor1):
+            return dor
+        return dor1
+
+
+
+    def getDistToMidPoint(self, line):
+        return self.getDistToPoint(line.getCenter())
+
+    def getDistToPoint(self, p=Point(0, 0)):
+        x = p.getX()
+        y = p.getY()
+        m1 = -1.0 / self.m
+        b1 = y - (m1 * x)
+        x1 = (self.b - b1) / (m1 - self.m)
+        y1 = self.f(x1)
+        dx = x - x1
+        dy = y - y1
+        return np.sqrt(dx * dx + dy * dy)
 
 
 class PointLine():
