@@ -1,5 +1,5 @@
 import numpy as np
-
+import itertools
 from graphics import *
 
 win = GraphWin("My Circle", 1000, 1000)
@@ -23,6 +23,7 @@ allwalls=[]
 wall=[]
 nodes=[]
 newnodes=[]
+carpath=None
 
 def update(dir):
     global win,front,c,x,y,orient, oldLocs
@@ -30,7 +31,7 @@ def update(dir):
     orient=d1
 
 def render():
-    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime,wall,newnodes
+    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime,wall,newnodes,carpath
     c = Circle(Point(x/scale,y/scale), 7)
     c.setFill("black")
     front = Circle(Point(x / scale + (7 * np.math.cos(orient)), y / scale + (7 * np.math.sin(orient))), 5)
@@ -45,56 +46,71 @@ def render():
     t3=Text(t3loc,s3)
 
     clear(win)
+    if carpath!=None:
+        path=carpath.getLines()
+        for l in path:
+            l.setFill("grey")
+            l.draw(win)
+    '''
     for pp in oldLocs:
         p=Circle(pp, 3)
-        p.setFill("orange")
+        p.setFill("grey")
         p.draw(win)
-
-    for pp in points:
+    '''
+    '''for pp in points:
         p=Circle(pp, 3)
         p.setFill("orange")
         p.draw(win)
-
+    '''
     for n in nodes:
-        p2 = Circle(n.p, 1)
-        p2.setFill("blue")
+        size=len(n.cn)
+        rad=size/2.0+1
+        p2 = Circle(n.p, rad)
+        if size<6:
+            cmult=size/5.0
+            p2.setFill(color_rgb(250*cmult,0,250*(cmult)))#250*size,0,250*(1-size)
+        else:
+            p2.setFill("red")
+
         p2.draw(win)
         lines=n.getLines()
         for l in lines:
-            l.setFill("green")
+            #l.setFill("black")
             l.draw(win)
 
     c.draw(win)
+    #m = win.checkMouse()
 
+    #if(m!=None):
+    #    print(m.x,", ",m.y)
     t2.draw(win)
     t3.draw(win)
     front.draw(win)
 
 def scanWalls(data):
-    global orient,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes,newnodes
+    global orient,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes,newnodes, scale, lscale, nodes
+
     if (orient==0):return
     samples=20
-    lp=None
-    rp=None
     st=time.time()
+    scanrange=50
+    prange=len(nodes)*.8
+    if prange>scanrange:scanrange=prange
 
-
-    if (len(points)>25):
+    '''if (len(points)>25):
         for i in range(len(points)-25):
-            points.remove(points[i])
-            pass
+            if len(points)>i:
+                points.remove(points[i])
+                pass
     cp=Point(x/scale,y/scale)
-
-    lineSamples=5
+    '''
     for i in range(samples):
         lp1=getPoint(data,i*(115/samples)+5)
         rp1=getPoint(data,240-(i*(115/samples)+5))
         if (lp1!=None):
             points.append(lp1)
-            #nodes.append(Node(lp1))
         if (rp1!=None):
             points.append(rp1)
-            #nodes.append(Node(rp1))
 
         w=.2
         '''if (i%(samples/lineSamples)==0):
@@ -108,36 +124,85 @@ def scanWalls(data):
                 clipLinesInterSecting(Line(wp1, cp),True)
             lp=lp1
             rp=rp1'''
-    cleanPoints()
+    #cleanPoints()
+    maxinitdist = 1 * lscale / scale
+
+    mininitdist=.25*lscale/scale
     for p in points:
         n=Node(p)
-        nodes.append(n)
-        newnodes.append(n)
+        if (distToClosestNode(n,40)>mininitdist):
+            #n.connectWithClosest(nodes,maxinitdist)
+            #if (not isDuplicateNode(n,scanrange)):
+            nodes.append(n)
+            newnodes.append(n)
 
     points=[]
     nodes = connectNodes(nodes)
 
-    for n in newnodes:
-        removeDuplicates(n)
+
 
     newnodes = []
 
     removeAbsentNodes()
     if (time.time() > lt + .5):
-        cleanNodes()
+        cleanNodes(scanrange)
         lt = time.time()
-        oldLocs.append(Point(x / scale, y / scale))
+
+        #oldLocs.append(Point(x / scale, y / scale))
+        updatePath(Point(x / scale, y / scale))
         scantime = time.time() - st
 
+def updatePath(pos):
+    global carpath
+    if carpath==None:
+        carpath=Path(pos)
+    else:
+        carpath.addPos(pos)
 
-def removeDuplicates(n1):
+def combineDuplicates(n1, range):
     global nodes
-    if (len(n1.cn)>1):
-        for n in nodes:
-            if (n!=n1):
+    if (len(n1.cn) > 1):
+        end = len(nodes)
+        start = end - range
+        if start < 0: start = 0
+        for n in itertools.islice(nodes, start, end):
+            if (n != n1):
                 if (n1.equals(n)):
+                    n1.combineNodes(n)
                     nodes.remove(n)
 
+def distToClosestNode(n1, range):
+    global nodes
+    end = len(nodes)
+    start = end - range
+    if start < 0: start = 0
+    x=n1.p.x
+    y=n1.p.y
+    closest = None
+    closest_dist = 10000
+    for n in itertools.islice(nodes,start, end):
+        dx = n.p.x - x
+        dy = n.p.y - y
+        dist = np.math.sqrt(dx * dx + dy * dy)
+        if (dist < closest_dist):
+            closest_dist = dist
+    return closest_dist
+
+def removeImpossibleConnections(rangepercent):
+    global nodes, oldlocs
+
+
+def isDuplicateNode(n1,range):
+    global nodes
+    if (len(n1.cn)>1):
+        end = len(nodes)
+        start = end - range
+        if start < 0: start = 0
+        for n in itertools.islice(nodes, start, end):
+            if (n!=n1):
+                if (n1.equals(n)):
+                    return True
+    return False
 
 def combineSimilarLines():
     print ("there are currently ", len(wall)," walls")
@@ -318,7 +383,7 @@ def avgPoints():
 
 def cleanPoints():
     global points,lscale, scale
-    md=.25*lscale/scale #md = max distance
+    md=.2*lscale/scale #md = max distance
     mindist=.8*lscale/scale
     for p in points:
         if (not points.__contains__(p)):continue
@@ -327,13 +392,16 @@ def cleanPoints():
         #print (x,y)
         for p1 in points:
             if (p1!=p and points.__contains__(p1) and points.__contains__(p)):
-                x1 = p1.getX()
-                y1 = p1.getY()
-                if(abs(x1-x)<md and abs(y1-y)<md):
-                    np=Point((p.x+p1.x)/2,(p.y+p1.y)/2)
+                x1 = p1.getX()-x
+                y1 = p1.getY()-y
+                dist=np.sqrt(x1*x1+y1*y1)
+
+
+                if(dist<md):
+                    newp=Point((p.x+p1.x)/2,(p.y+p1.y)/2)
                     points.remove(p1)
                     points.remove(p)
-                    points.append(np)
+                    points.append(newp)
 
         '''close=getClosestPoint(p)
         if(close!=None):
@@ -418,26 +486,43 @@ def connectTwoNodes(n1,n2):
     n1.tryAddNode(n2)
     n2.tryAddNode(n1)
 
-def cleanNodes():
+def straighten(range):
+    pass
+
+def simplify(range=20):
     global nodes,scale,lscale
     maxdist=3*lscale/scale
-    removeTriangles()
-    removeBranches()
-    resetLargeNodes()
-    for n in nodes:
+    end=len(nodes)
+    start=end-range
+    if start<0:start=0
+    #print("range = ",start,'-',end)
+    for n in itertools.islice(nodes,start,end):
+
         if(not n.hasDisconnect()):
             if(len(n.cn)==2):
                 dist=n.cn[0].distToNode(n.cn[1])
+
                 if(dist<maxdist):
-                    '''nfunc1=NodalFunc(n,n.cn[0])
-                    nfunc2=NodalFunc(n,n.cn[1])
-                    odif=nfunc1.getOrientDif(nfunc2)
-                    if odif<45:'''
-                    #print ("removing ", n.printNode())
-                    n.cn[0].replaceNWith(n, n.cn[1])
-                    n.cn[1].replaceNWith(n, n.cn[0])
-                    if (nodes.__contains__(n)):
-                        nodes.remove(n)
+                    distToFirst = (n.distToNode(n.cn[1]) + n.distToNode(n.cn[0])) / 2.0
+                    if dist > distToFirst:
+                        '''nfunc1=NodalFunc(n,n.cn[0])
+                        nfunc2=NodalFunc(n,n.cn[1])
+                        odif=nfunc1.getOrientDif(nfunc2)
+                        if odif<45:'''
+                        #print ("removing ", n.printNode())
+                        n.cn[0].replaceNWith(n, n.cn[1])
+                        n.cn[1].replaceNWith(n, n.cn[0])
+                        if (nodes.__contains__(n)):
+                            nodes.remove(n)
+    pass
+
+def cleanNodes(range=40):
+    removeTriangles(range)
+    removeBranches(range)
+    removeTwinNodes(range)
+    resetLargeNodes(range)
+    simplify(range)
+
 
 
 def getTotalNodeData():
@@ -462,17 +547,34 @@ def getAvgNodeNet():
 
     return (sum/(len(nodes)))
 
+def removeTwinNodes(range=20):
+    global nodes,scale,lscale
+    mdist=.1*lscale/scale
+    #for line in itertools.islice(list, start, stop):
+    #    foo(line)
+    end=len(nodes)
+    start=end-range
+    if start<0:start=0
+    for n in itertools.islice(nodes,start,end):
+        n.removeNodesTooClose(mdist)
+
+
 def removeAbsentNodes():
     global nodes
     for n in nodes:
+        #n.removeDuplicateCN
         for n1 in n.cn:
             if not nodes.__contains__(n1):
+
                 #print ("phantom node deleted")
                 n.cn.remove(n1)
 
-def removeTriangles():
+def removeTriangles(range=20):
     global nodes
-    for n in nodes:
+    end=len(nodes)
+    start=end-range
+    if start<0:start=0
+    for n in itertools.islice(nodes,start,end):
         if len(n.cn)==2:
             if n.cn[0].contains(n.cn[1]) and n.cn[1].contains(n.cn[0]):
                 n.cn[0].removeNode(n)
@@ -483,22 +585,52 @@ def removeTriangles():
 
                 nodes.remove(n)
 
-def removeBranches():
+def removeBranches(range=20):
     global nodes
-    for n in nodes:
+    end=len(nodes)
+    start=end-range
+    if start<0:start=0
+    for n in itertools.islice(nodes,start,end):
+
         if len(n.cn) == 1:
             if (len(n.cn[0].cn)>2):
                 n.cn[0].removeNode(n)
                 nodes.remove(n)
 
-def resetLargeNodes():
+def resetLargeNodes(range=20):
     global nodes, scale, lscale
-    maxdist = 3 * lscale / scale
+    maxnewdist = 1.5 * lscale / scale
+    minkeepdist = 2 * lscale / scale
     global nodes
+    #end=len(nodes)
+    #start=end-range
     for n in nodes:
         if len(n.cn)>3:
-            n.resetNode(nodes,maxdist)
+            n.resetNode(nodes,maxnewdist,minkeepdist)
 
+class Path():
+    path=[]
+
+    def __init__(self,pos):
+        self.path=[Node(pos)]
+
+    def addPos(self, pos):
+        n=Node(pos)
+        lastNode=None
+        pathlen=len(self.path)
+        if (pathlen>0):
+            lastNode=self.path[pathlen-1]
+        n.tryAddNode(lastNode)
+        lastNode.tryAddNode(n)
+        self.path.append(n)
+
+    def getLines(self):
+        lines=[]
+        for n in self.path:
+            nl=n.getLines()
+            for l in nl:
+                lines.append(l)
+        return lines
 
 class Node():
     p=None
@@ -507,11 +639,11 @@ class Node():
     #otherConnected=[]
     cn=[]
     def __init__(self,p1):
-        global scale, lscale,nodes
-        maxInit=.5*lscale/scale
+        #global scale, lscale,nodes
+        #maxInit=.5*lscale/scale
         self.p=p1
         self.cn=[]
-        self.connectWithClosest(nodes,maxInit)
+        #self.connectWithClosest(nodes,maxInit)
 
 
     def areConnectedInList(self, list):
@@ -522,6 +654,31 @@ class Node():
 
     def hasNoConnected(self):
         return len(self.cn)==0
+
+    def removeSelfFromCN(self):
+        if(self.cn.__contains__(self)):
+            self.cn.remove(self)
+
+    def removeNodesTooClose(self,mdist):
+        global nodes
+        for n in self.cn:
+            dist=self.distToNode(n)
+            if(dist<mdist):
+                self.cn.remove(n)
+                n.removeNode(self)
+                if (nodes.__contains__(n)):
+                    nodes.remove(n)
+                for node in n.cn:
+                    if node!=self:
+                        if not self.cn.__contains__(node):
+                            self.cn.append(node)
+
+
+    def removeDuplicateCN(self):
+        ncn=[]
+        for n in self.cn:
+            if (not ncn.__contains__(n)):
+                ncn.append(n)
 
     def replaceNWith(self,cn,nn):
         if self.cn.__contains__(cn):
@@ -549,10 +706,12 @@ class Node():
         if(self.cn.__contains__(node)):
             self.cn.remove(node)
 
-    def resetNode(self,list,maxdist):
+    def resetNode(self,list,maxdist,maxkeepdist):
         for node in self.cn:
-            node.removeNode(self)
-            self.cn.remove(node)
+            if node.getSize()>2:
+                if self.distToNode(node)<maxkeepdist:
+                    node.removeNode(self)
+                    self.cn.remove(node)
         self.connectWithClosest(list,maxdist)
 
     def isNodeTheOnlyConnected(self,node):
@@ -569,6 +728,9 @@ class Node():
             return True
         return False
         #return self.n1==None or self.n2==None
+
+    def getSize(self):
+        return len(self.cn)
 
     def connectWithClosest(self,nodes, maxdist):
         if (len(self.cn)==0):
@@ -611,6 +773,14 @@ class Node():
                     return False
             return True
         return False
+
+    def combineNodes(self,n1):
+        x=(self.p.x+n1.p.x)/2.0
+        y=(self.p.y+n1.p.y)/2.0
+        self.p=Point(x,y)
+        for n in n1.cn:
+            if (not self.cn.__contains__(n)):
+                self.cn.append(n)
 
     def tryAddNode(self, n):
         if (not self.cn.__contains__(n)):

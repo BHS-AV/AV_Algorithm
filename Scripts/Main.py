@@ -11,7 +11,6 @@ def run():
     print("run method go plz?")
 
 
-
 if __name__ == "__main__":
     print ("go")
     rospy.init_node('keyop')  # vesc/ackermann_cmd_mux/input/navigation ackermann_msgs/AckermannDriveStamped
