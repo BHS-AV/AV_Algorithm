@@ -25,22 +25,27 @@ nodes=[]
 newnodes=[]
 carpath=None
 
+ppaths=[]
+
 def update(dir):
     global win,front,c,x,y,orient, oldLocs
     d1=dir/180.0*3.14
     orient=d1
 
 def render():
-    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime,wall,newnodes,carpath
+    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime,wall,newnodes,carpath,ppaths
     c = Circle(Point(x/scale,y/scale), 7)
     c.setFill("black")
     front = Circle(Point(x / scale + (7 * np.math.cos(orient)), y / scale + (7 * np.math.sin(orient))), 5)
     front.setFill("red")
 
+    if(carpath!=None):
+        s1 = "recorded locations : ", len(carpath.path), " s "
+        t1loc = Point(500, 50)
+        t1 = Text(t1loc, s1)
     s2="last scan time : ",scantime," s "
-    t2loc=Point(500,75)
+    t2loc=Point(500,100)
     t2=Text(t2loc,s2)
-    #s3="nodes : ",len(nodes)," s, with size of ",getAvgNodeNet(),", ",numNodesOver2()," over 2"
     s3=getTotalNodeData()
     t3loc=Point(500,150)
     t3=Text(t3loc,s3)
@@ -51,17 +56,11 @@ def render():
         for l in path:
             l.setFill("grey")
             l.draw(win)
-    '''
-    for pp in oldLocs:
-        p=Circle(pp, 3)
-        p.setFill("grey")
-        p.draw(win)
-    '''
-    '''for pp in points:
-        p=Circle(pp, 3)
-        p.setFill("orange")
-        p.draw(win)
-    '''
+
+    for p in ppaths:
+        c1=Circle(p,5)
+        c1.setFill("orange")
+        c1.draw(win)
     for n in nodes:
         size=len(n.cn)
         rad=size/2.0+1
@@ -79,17 +78,14 @@ def render():
             l.draw(win)
 
     c.draw(win)
-    #m = win.checkMouse()
-
-    #if(m!=None):
-    #    print(m.x,", ",m.y)
+    if (carpath!=None):
+        t1.draw(win)
     t2.draw(win)
     t3.draw(win)
     front.draw(win)
 
 def scanWalls(data):
     global orient,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes,newnodes, scale, lscale, nodes
-
     if (orient==0):return
     samples=20
     st=time.time()
@@ -97,13 +93,6 @@ def scanWalls(data):
     prange=len(nodes)*.8
     if prange>scanrange:scanrange=prange
 
-    '''if (len(points)>25):
-        for i in range(len(points)-25):
-            if len(points)>i:
-                points.remove(points[i])
-                pass
-    cp=Point(x/scale,y/scale)
-    '''
     for i in range(samples):
         lp1=getPoint(data,i*(115/samples)+5)
         rp1=getPoint(data,240-(i*(115/samples)+5))
@@ -112,45 +101,71 @@ def scanWalls(data):
         if (rp1!=None):
             points.append(rp1)
 
-        w=.2
-        '''if (i%(samples/lineSamples)==0):
-            if (lp1!=None and lp!=None):
-                l=Line(lp1, lp)
-                wp1=Point((lp1.x+w*cp.x)/(1.0+w),(lp1.y+w*cp.y)/(1.0+w))
-                clipLinesInterSecting(Line(wp1, cp),False)
-            if (rp1!=None and rp!=None):
-                l=Line(rp1, rp)
-                wp1=Point((rp1.x+w*cp.x)/(1.0+w),(rp1.y+w*cp.y)/(1.0+w))
-                clipLinesInterSecting(Line(wp1, cp),True)
-            lp=lp1
-            rp=rp1'''
-    #cleanPoints()
-    maxinitdist = 1 * lscale / scale
-
     mininitdist=.25*lscale/scale
     for p in points:
         n=Node(p)
         if (distToClosestNode(n,40)>mininitdist):
-            #n.connectWithClosest(nodes,maxinitdist)
-            #if (not isDuplicateNode(n,scanrange)):
             nodes.append(n)
             newnodes.append(n)
 
     points=[]
     nodes = connectNodes(nodes)
-
-
-
     newnodes = []
-
     removeAbsentNodes()
+
     if (time.time() > lt + .5):
         cleanNodes(scanrange)
         lt = time.time()
-
-        #oldLocs.append(Point(x / scale, y / scale))
+        findPPaths()
         updatePath(Point(x / scale, y / scale))
         scantime = time.time() - st
+
+
+def getClosestCarPath(n1,n2):
+    global carpath
+    closest=[]
+    closestd=100000
+    closestnode=None
+    if(carpath==None):return
+    for p in carpath.path:
+        avgd=(n1.distToNode(p)+n2.distToNode(p))/2.0
+        if (avgd<closestd):
+            closestnode=p
+            closestd=avgd
+    if (closestnode!=None):
+        closest.append(closestnode)
+        closestnode2=None
+        closestd=100000
+        for p in carpath.path:
+            if (p!=closestnode):
+                avgd = (n1.distToNode(p) + n2.distToNode(p)) / 2.0
+                if (avgd < closestd):
+                    closestnode2 = p
+                    closestd = avgd
+        if (closestnode2!=None):
+            closest.append(closestnode2)
+    return closest
+
+def findPPaths():
+    global ppaths, nodes
+    if(nodes<9):return
+    ppaths=[]
+    start=1
+    end=int(len(nodes)*.9)
+    for n in itertools.islice(nodes,start,end):
+        index=nodes.index(n)
+        for n1 in n.cn:
+            index1=nodes.index(n1)
+            if (index1>index):
+                cpath=getClosestCarPath(n,n1)
+                if(cpath!=None):
+                    if len(cpath)==2:
+                        wallTangent=NodalFunc(n,n1)
+                        pathTangent=NodalFunc(cpath[0],cpath[1])
+                        deltaOrient=wallTangent.getOrientDif(pathTangent)
+                        if(abs(deltaOrient)>45):
+                            ppaths.append(Point((n.p.x+n1.p.x)/2.0,(n.p.y+n1.p.y)/2.0))
+
 
 def updatePath(pos):
     global carpath
