@@ -24,8 +24,8 @@ wall=[]
 nodes=[]
 newnodes=[]
 carpath=None
-
 ppaths=[]
+connections=[]
 
 def update(dir):
     global win,front,c,x,y,orient, oldLocs
@@ -84,6 +84,17 @@ def render():
     t3.draw(win)
     front.draw(win)
 
+def setConnections():
+    global connections, nodes
+    connections=[]
+    for n in nodes:
+        index=nodes.index(n)
+        for n1 in n.cn:
+            index1=nodes.index(n1)
+            if (index1>index):
+                connections.append(NodalConnection(n,n1))
+
+
 def scanWalls(data):
     global orient,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes,newnodes, scale, lscale, nodes
     if (orient==0):return
@@ -108,17 +119,43 @@ def scanWalls(data):
             nodes.append(n)
             newnodes.append(n)
 
+    st=time.time()
+    subtimes=[]
     points=[]
     nodes = connectNodes(nodes)
     newnodes = []
     removeAbsentNodes()
+    subtimes.append(time.time()-st)
 
     if (time.time() > lt + .5):
+
+        st=time.time()
         cleanNodes(scanrange)
-        lt = time.time()
+        subtimes.append(time.time() - st)
+
+        st=time.time()
         findPPaths()
+        subtimes.append(time.time() - st)
+
+
+
+        #print("subtimes = ",subtimes)
+        scantime = getSubTimes(subtimes)
         updatePath(Point(x / scale, y / scale))
-        scantime = time.time() - st
+        lt = time.time()
+        #scantime = time.time() - st
+
+def getSubTimes(subtimes):
+    t=0
+    for i in subtimes:
+        t=t+i
+    percent=[]
+    for i in subtimes:
+        p=i/t
+        p=round(p,2)
+        percent.append(p)
+
+    return (round(t,4),percent)
 
 
 def getClosestCarPath(n1,n2):
@@ -127,23 +164,21 @@ def getClosestCarPath(n1,n2):
     closestd=100000
     closestnode=None
     if(carpath==None):return
-    for p in carpath.path:
+    if(len(carpath.path)<3):return
+    end=len(carpath.path)-1
+    for p in itertools.islice(carpath.path,0,end):
         avgd=(n1.distToNode(p)+n2.distToNode(p))/2.0
         if (avgd<closestd):
             closestnode=p
             closestd=avgd
     if (closestnode!=None):
         closest.append(closestnode)
-        closestnode2=None
-        closestd=100000
-        for p in carpath.path:
-            if (p!=closestnode):
-                avgd = (n1.distToNode(p) + n2.distToNode(p)) / 2.0
-                if (avgd < closestd):
-                    closestnode2 = p
-                    closestd = avgd
-        if (closestnode2!=None):
-            closest.append(closestnode2)
+        index=carpath.path.index(closestnode)
+        adj1=carpath.path[index+1]
+        adj2=carpath.path[index-1]
+        closestnode2=adj1
+        if(closestnode.distToNode(adj1)>closestnode.distToNode(adj2)):closestnode2=adj2
+        closest.append(closestnode2)
     return closest
 
 def findPPaths():
@@ -597,7 +632,6 @@ def removeTriangles(range=20):
                     n.cn[1].removeNode(n)
                 else:
                     n.cn[0].removeNode(n)
-
                 nodes.remove(n)
 
 def removeBranches(range=20):
@@ -816,6 +850,20 @@ class Node():
             lines.append(Line(self.p,n.p))
         return lines
 
+class NodalConnection():
+    n1=None
+    n2=None
+    def __init__(self,n1,n2):
+        self.n1=n1
+        self.n2=n2
+    def doesStillExist(self):
+        global nodes
+        if (nodes.__contains__(n1) and nodes.__contains__(n2)):
+            if (self.doNodesConnect()):
+                return True
+        return False
+    def doNodesConnect(self):
+        return (self.n1.contains(self.n2) and self.n2.contains(self.n1))
 
 class NodalFunc():
     m = None  # slope
