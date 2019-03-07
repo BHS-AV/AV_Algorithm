@@ -858,7 +858,7 @@ class NodalConnection():
         self.n2=n2
     def doesStillExist(self):
         global nodes
-        if (nodes.__contains__(n1) and nodes.__contains__(n2)):
+        if (nodes.__contains__(self.n1) and nodes.__contains__(self.n2)):
             if (self.doNodesConnect()):
                 return True
         return False
