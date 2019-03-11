@@ -26,6 +26,7 @@ newnodes=[]
 carpath=None
 ppaths=[]
 connections=[]
+similarpos=[]
 
 def update(dir):
     global win,front,c,x,y,orient, oldLocs
@@ -672,6 +673,30 @@ def resetLargeNodes(range=20):
     for n in nodes:
         if len(n.cn)>3:
             n.resetNode(nodes,maxnewdist,minkeepdist)
+
+def getSimilarPos():
+    global carpath,similarpos
+    similarpos=[]
+    if (carpath!=None):
+        if(len(carpath)>10):
+            last=carpath[len(carpath)-1]
+            for n in carpath:
+                if (n!=last):
+                    orientDif=abs(last.orient-n.orient)
+                    o1=abs((last.orient)-(n.orient+360))
+                    o2=abs((last.orient)-(n.orient-360))
+                    if(o1<orientDif):orientDif=o1
+                    if(o2<orientDif):orientDif=o2
+                    if(orientDif<20):
+                        similarpos.append(n)
+
+
+def getDirFromN1toN2(n1,n2):
+    dx=n2.p.getX()-n1.p.getX()
+    dy=n2.p.getY()-n1.p.getY()
+    orient=np.math.atan(dy/dx)*180/3.14
+
+
 
 class Path():
     path=[]
