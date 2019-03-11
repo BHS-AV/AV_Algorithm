@@ -52,15 +52,16 @@ def render():
 
     clear(win)
     if carpath!=None:
+        dirLines = carpath.getOrientLines()
         path=carpath.getLines()
         for l in path:
             l.setFill("grey")
             l.draw(win)
+        for l in dirLines:
+            l.setFill("blue")
+            l.draw(win)
 
-    for p in ppaths:
-        c1=Circle(p,5)
-        c1.setFill("orange")
-        c1.draw(win)
+
     for n in nodes:
         size=len(n.cn)
         rad=size/2.0+1
@@ -76,6 +77,11 @@ def render():
         for l in lines:
             #l.setFill("black")
             l.draw(win)
+
+    for p in ppaths:
+        c1=Line(p[0].p,p[1].p)
+        c1.setFill("orange")
+        c1.draw(win)
 
     c.draw(win)
     if (carpath!=None):
@@ -184,9 +190,19 @@ def getClosestCarPath(n1,n2):
 def findPPaths():
     global ppaths, nodes
     if(nodes<9):return
-    ppaths=[]
-    start=1
-    end=int(len(nodes)*.9)
+    #ppaths=[]
+    range=30
+    end=len(nodes)-10
+    if (end<0):end=len(nodes)
+    start=end-range
+    if(start<0):start=0
+    for p in ppaths:
+        if (not nodes.__contains__(p[0])):
+            ppaths.remove(p)
+        elif (not nodes.__contains__(p[1])):
+            ppaths.remove(p)
+    #start=1
+    #end=int(len(nodes)*.9)
     for n in itertools.islice(nodes,start,end):
         index=nodes.index(n)
         for n1 in n.cn:
@@ -199,7 +215,7 @@ def findPPaths():
                         pathTangent=NodalFunc(cpath[0],cpath[1])
                         deltaOrient=wallTangent.getOrientDif(pathTangent)
                         if(abs(deltaOrient)>45):
-                            ppaths.append(Point((n.p.x+n1.p.x)/2.0,(n.p.y+n1.p.y)/2.0))
+                            ppaths.append([n,n1])
 
 
 def updatePath(pos):
@@ -661,10 +677,15 @@ class Path():
     path=[]
 
     def __init__(self,pos):
-        self.path=[Node(pos)]
+        global orient
+        n=Node(pos)
+        n.orient=orient
+        self.path=[n]
 
     def addPos(self, pos):
+        global orient
         n=Node(pos)
+        n.dir=orient
         lastNode=None
         pathlen=len(self.path)
         if (pathlen>0):
@@ -672,6 +693,17 @@ class Path():
         n.tryAddNode(lastNode)
         lastNode.tryAddNode(n)
         self.path.append(n)
+
+    def getOrientLines(self):
+        lines=[]
+        for n in self.path:
+            p1=n.p
+            x1=n.p.getX()+(20*np.math.cos(n.dir))
+            y1=n.p.getY()+(20*np.math.sin(n.dir))
+            l=Line(p1,Point(x1,y1))
+            l.setArrow("last")
+            lines.append(l)
+        return lines
 
     def getLines(self):
         lines=[]
@@ -683,9 +715,7 @@ class Path():
 
 class Node():
     p=None
-    #n1=None
-    #n2=None
-    #otherConnected=[]
+    dir=0
     cn=[]
     def __init__(self,p1):
         #global scale, lscale,nodes
