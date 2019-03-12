@@ -34,7 +34,7 @@ def update(dir):
     orient=d1
 
 def render():
-    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime,wall,newnodes,carpath,ppaths
+    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime,wall,newnodes,carpath,ppaths,similarpos
     c = Circle(Point(x/scale,y/scale), 7)
     c.setFill("black")
     front = Circle(Point(x / scale + (7 * np.math.cos(orient)), y / scale + (7 * np.math.sin(orient))), 5)
@@ -84,6 +84,10 @@ def render():
         c1.setFill("orange")
         c1.draw(win)
 
+    for p in similarpos:
+        p1=Circle(p.p,5)
+        p1.setFill("green")
+        p1.draw(win)
     c.draw(win)
     if (carpath!=None):
         t1.draw(win)
@@ -144,7 +148,7 @@ def scanWalls(data):
         findPPaths()
         subtimes.append(time.time() - st)
 
-
+        getSimilarPos()
 
         #print("subtimes = ",subtimes)
         scantime = getSubTimes(subtimes)
@@ -678,16 +682,19 @@ def getSimilarPos():
     global carpath,similarpos
     similarpos=[]
     if (carpath!=None):
-        if(len(carpath)>10):
-            last=carpath[len(carpath)-1]
-            for n in carpath:
+        if(len(carpath.path)>10):
+            last=carpath.path[len(carpath.path)-1]
+            for n in carpath.path:
                 if (n!=last):
-                    orientDif=abs(last.orient-n.orient)
-                    o1=abs((last.orient)-(n.orient+360))
-                    o2=abs((last.orient)-(n.orient-360))
+                    d1=n.dir/3.14*180
+                    d2=last.dir/3.14*180
+                    orientDif=abs(d1-d2)
+                    o1=abs((d2)-(d1+360))
+                    o2=abs((d2)-(d1-360))
                     if(o1<orientDif):orientDif=o1
                     if(o2<orientDif):orientDif=o2
                     if(orientDif<20):
+                        #print('dif between',d1,' and ',d2,' is ',orientDif)
                         similarpos.append(n)
 
 
@@ -704,7 +711,7 @@ class Path():
     def __init__(self,pos):
         global orient
         n=Node(pos)
-        n.orient=orient
+        n.dir=orient
         self.path=[n]
 
     def addPos(self, pos):
@@ -930,7 +937,10 @@ class NodalFunc():
     def __init__(self, n1,n2):
         self.n1=n1
         self.n2=n2
-        self.m = (n2.p.y - n1.p.y) / ((n2.p.x - n1.p.x))
+        if(n1.p.x==n2.p.x):
+            self.m=9999
+        else:
+            self.m = (n2.p.y - n1.p.y) / ((n2.p.x - n1.p.x))
         self.b = n1.p.y - (n1.p.x * self.m)
         self.orient = np.math.atan(1 / self.m)
 
