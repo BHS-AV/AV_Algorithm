@@ -11,8 +11,11 @@ x=win.getWidth()/2*scale
 y=win.getHeight()/2*scale
 orient=0
 lt=time.time()
+lt2=time.time()-.25
 lscale=50.0
 scantime=0
+
+refbool=0
 
 
 
@@ -22,11 +25,12 @@ points=[]
 allwalls=[]
 wall=[]
 nodes=[]
-newnodes=[]
 carpath=None
 ppaths=[]
 connections=[]
 similarpos=[]
+
+subtimes=[0,0,0,0]
 
 def update(dir):
     global win,front,c,x,y,orient, oldLocs
@@ -34,7 +38,7 @@ def update(dir):
     orient=d1
 
 def render():
-    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime,wall,newnodes,carpath,ppaths,similarpos
+    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime,wall,carpath,ppaths,similarpos
     c = Circle(Point(x/scale,y/scale), 7)
     c.setFill("black")
     front = Circle(Point(x / scale + (7 * np.math.cos(orient)), y / scale + (7 * np.math.sin(orient))), 5)
@@ -76,7 +80,6 @@ def render():
         p2.draw(win)
         lines=n.getLines()
         for l in lines:
-            #l.setFill("black")
             l.draw(win)
 
     for p in ppaths:
@@ -88,12 +91,16 @@ def render():
         p1=Circle(p.p,5)
         p1.setFill("green")
         p1.draw(win)
-    c.draw(win)
+
     if (carpath!=None):
         t1.draw(win)
+
     t2.draw(win)
     t3.draw(win)
+
+    c.draw(win)
     front.draw(win)
+
 
 def setConnections():
     global connections, nodes
@@ -107,7 +114,7 @@ def setConnections():
 
 
 def scanWalls(data):
-    global orient,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes,newnodes, scale, lscale, nodes
+    global orient,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes, scale, lscale, nodes, refbool
     if (orient==0):return
     samples=20
     st=time.time()
@@ -128,33 +135,19 @@ def scanWalls(data):
         n=Node(p)
         if (distToClosestNode(n,40)>mininitdist):
             nodes.append(n)
-            newnodes.append(n)
 
-    st=time.time()
-    subtimes=[]
     points=[]
-    nodes = connectNodes(nodes)
-    newnodes = []
     removeAbsentNodes()
-    subtimes.append(time.time()-st)
+    nodes = connectNodes(nodes)
 
     if (time.time() > lt + .5):
-
-        st=time.time()
-        cleanNodes(scanrange)
-        subtimes.append(time.time() - st)
-
-        st=time.time()
-        findPPaths()
-        subtimes.append(time.time() - st)
-
         updatePath(Point(x / scale, y / scale))
         getSimilarPos()
+        cleanNodes(scanrange)
+        findPPaths()
 
-        #print("subtimes = ",subtimes)
-        scantime = getSubTimes(subtimes)
-        lt = time.time()
-        #scantime = time.time() - st
+    scantime = getSubTimes(subtimes)
+
 
 def getSubTimes(subtimes):
     t=0
@@ -193,9 +186,10 @@ def getClosestCarPath(n1,n2):
     return closest
 
 def findPPaths():
-    global ppaths, nodes
+    global ppaths, nodes, subtimes
     if(nodes<9):return
     #ppaths=[]
+    st=time.time()
     range=30
     end=len(nodes)-10
     if (end<0):end=len(nodes)
@@ -211,16 +205,19 @@ def findPPaths():
     for n in itertools.islice(nodes,start,end):
         index=nodes.index(n)
         for n1 in n.cn:
-            index1=nodes.index(n1)
-            if (index1>index):
-                cpath=getClosestCarPath(n,n1)
-                if(cpath!=None):
-                    if len(cpath)==2:
-                        wallTangent=NodalFunc(n,n1)
-                        pathTangent=NodalFunc(cpath[0],cpath[1])
-                        deltaOrient=wallTangent.getOrientDif(pathTangent)
-                        if(abs(deltaOrient)>45):
-                            ppaths.append([n,n1])
+            if(nodes.__contains__(n1)):
+                index1=nodes.index(n1)
+                if (index1>index):
+                    cpath=getClosestCarPath(n,n1)
+                    if(cpath!=None):
+                        if len(cpath)==2:
+                            wallTangent=NodalFunc(n,n1)
+                            pathTangent=NodalFunc(cpath[0],cpath[1])
+                            deltaOrient=wallTangent.getOrientDif(pathTangent)
+                            if(abs(deltaOrient)>45):
+                                ppaths.append([n,n1])
+    subtimes[2]=round((time.time()-st),3)
+
 
 
 def updatePath(pos):
@@ -531,7 +528,8 @@ def getSlopeOf(l1):
     return (l1.p2.getY() - l1.p1.getY()) / ((l1.p2.getX() - l1.p1.getX()))
 
 def connectNodes(list):
-    global scale,lscale,nodes
+    global scale,lscale,nodes,subtimes
+    st=time.time()
     maxdist=1.2*lscale/scale
     for n in list:
         #n.printNode()
@@ -539,6 +537,7 @@ def connectNodes(list):
             n.connectWithClosest(list,maxdist)
             #if(n.hasNoConnected()):
             #    list.remove(n)
+    subtimes[0]=round((time.time()-st),3)
     return list
 
 def connectVeryClose():
@@ -588,11 +587,14 @@ def simplify(range=20):
     pass
 
 def cleanNodes(range=40):
+    st=time.time()
     removeTriangles(range)
     removeBranches(range)
     removeTwinNodes(range)
     resetLargeNodes(range)
     simplify(range)
+    subtimes[1]=round((time.time()-st),3)
+
 
 
 
@@ -723,7 +725,7 @@ def getSimilarPos():
                         if (o1 < orientDif): orientDif = o1
                         if (o2 < orientDif): orientDif = o2
                         #print 'dir from cpos to this node = ',round(orientDif),' current orient = ',round(d2)
-                        if(abs(orientDif)>20 and abs(orientDif)<160):
+                        if(abs(orientDif)>45 and abs(orientDif)<135):
                             similarpos.append(n)
             correctPositionalDrift()
 
