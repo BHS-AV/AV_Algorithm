@@ -3,6 +3,7 @@ import rospy
 import numpy as np
 import Navigation as nav
 import Map as m
+import time
 from nav_msgs.msg import Odometry as odom
 from sensor_msgs.msg import LaserScan
 
@@ -12,7 +13,7 @@ lastTime = 0
 lt=0
 destDir = 1 # 0 = north , 90 = east , 180 = south , 270 = west
 hold=0 # 0 = normal , 1 = right , -1 = left
-
+lastPathFind=time.time()
 
 def get_data_array(data, a=0, b=240):
     PPD = 4.5  # points per degree
@@ -33,7 +34,7 @@ def print_data(data):
     # GLOBAL VARIABLES
     global reversing
     global maxSpeed
-    global hold,lt
+    global hold,lt,lastPathFind
 
     if (rospy.get_time()>lt+.8):
         lt=rospy.get_time()
@@ -130,6 +131,12 @@ def print_data(data):
         # BASIC LOW-LEVEL TURNING
         if (abs(distRight - distLeft) < (distRight + distLeft) / 4 and ttt==0):
             turn = turn * ((maxSpeed - speed) / maxSpeed)
+
+        if(abs(turn)<.2):
+            if(time.time()-lastPathFind>4):
+                m.findPPaths()
+                lastPathFind=time.time()
+
 
         # CRASH IMINENT OVERRIDE
         if (needsToReverse(dataFront, distFront) > 0):

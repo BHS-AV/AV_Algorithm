@@ -2,7 +2,7 @@ import numpy as np
 import itertools
 from graphics import *
 
-win = GraphWin("My Circle", 1000, 1000)
+win = GraphWin("map_display_window", 1000, 1000)
 
 c=None
 front=None
@@ -12,7 +12,7 @@ y=win.getHeight()/2*scale
 orient=0
 lt=time.time()
 lt2=time.time()-.25
-lscale=50.0
+lscale=80.0
 scantime=0
 
 refbool=0
@@ -32,12 +32,15 @@ similarpos=[]
 
 subtimes=[0,0,0,0]
 
+lastCorrection=time.time()
+haslapped=0
+
 def update(dir):
     global win,front,c,x,y,orient, oldLocs
     d1=dir/180.0*3.14
     orient=d1
 
-def render():
+def render(dt):
     global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime,wall,carpath,ppaths,similarpos
     c = Circle(Point(x/scale,y/scale), 7)
     c.setFill("black")
@@ -48,12 +51,13 @@ def render():
         s1 = 'recorded locations : ', len(carpath.path), ' s '
         t1loc = Point(500, 50)
         t1 = Text(t1loc, s1)
-    s2='last scan time : ',scantime,' s '
+    s2='last scan time : ',scantime,' s, render time = ',round(dt,2)
     t2loc=Point(500,100)
     t2=Text(t2loc,s2)
     s3=getTotalNodeData()
     t3loc=Point(500,150)
     t3=Text(t3loc,s3)
+
 
     clear(win)
     if carpath!=None:
@@ -114,13 +118,16 @@ def setConnections():
 
 
 def scanWalls(data):
-    global orient,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes, scale, lscale, nodes, refbool
+    global orient,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes, scale, lscale, nodes, refbool, lastCorrection, haslapped
     if (orient==0):return
     samples=20
     st=time.time()
     scanrange=50
     prange=len(nodes)*.8
     if prange>scanrange:scanrange=prange
+
+    if(haslapped):
+        samples=round(samples/3)
 
     for i in range(samples):
         lp1=getPoint(data,i*(115/samples)+5)
@@ -142,7 +149,9 @@ def scanWalls(data):
 
     if (time.time() > lt + .5):
         updatePath(Point(x / scale, y / scale))
-        getSimilarPos()
+        if(time.time()-lastCorrection>10):
+            getSimilarPos()
+            lastCorrection=time.time()
         cleanNodes(scanrange)
         #findPPaths()
 
@@ -698,10 +707,11 @@ def correctPositionalDrift():
             closest=p
             closestDist=dist
     #print 'closest pos = ',closestDist
-    if(closestDist<90):
+    if(closestDist<90 and closestDist>30):
         print ('moved from ',x,',',y,' to ',closest)
-        x=closest[0]
-        y=closest[1]
+        haslapped=1
+        x=(closest[0])
+        y=(closest[1])
 
 
 def getSimilarPos():
@@ -727,7 +737,7 @@ def getSimilarPos():
                         if (o1 < orientDif): orientDif = o1
                         if (o2 < orientDif): orientDif = o2
                         #print 'dir from cpos to this node = ',round(orientDif),' current orient = ',round(d2)
-                        if(abs(orientDif)>45 and abs(orientDif)<135):
+                        if(abs(orientDif)>60 and abs(orientDif)<120):
                             similarpos.append(n)
             correctPositionalDrift()
 
