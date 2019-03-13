@@ -39,6 +39,8 @@ def print_data(data):
         lt=rospy.get_time()
         m.scanWalls(data.ranges)
 
+    m.update(nav.getOrient())
+
     # TIME
     global lastTime
     if (lastTime == 0):

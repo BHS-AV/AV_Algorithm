@@ -45,10 +45,10 @@ def render():
     front.setFill("red")
 
     if(carpath!=None):
-        s1 = "recorded locations : ", len(carpath.path), " s "
+        s1 = 'recorded locations : ', len(carpath.path), ' s '
         t1loc = Point(500, 50)
         t1 = Text(t1loc, s1)
-    s2="last scan time : ",scantime," s "
+    s2='last scan time : ',scantime,' s '
     t2loc=Point(500,100)
     t2=Text(t2loc,s2)
     s3=getTotalNodeData()
@@ -144,9 +144,10 @@ def scanWalls(data):
         updatePath(Point(x / scale, y / scale))
         getSimilarPos()
         cleanNodes(scanrange)
-        findPPaths()
+        #findPPaths()
 
     scantime = getSubTimes(subtimes)
+
 
 
 def getSubTimes(subtimes):
@@ -698,6 +699,7 @@ def correctPositionalDrift():
             closestDist=dist
     #print 'closest pos = ',closestDist
     if(closestDist<90):
+        print ('moved from ',x,',',y,' to ',closest)
         x=closest[0]
         y=closest[1]
 

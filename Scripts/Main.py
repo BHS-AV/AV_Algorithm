@@ -4,6 +4,7 @@ import Map as m
 import numpy as np
 import Navigation as nav
 import Lidar as Lidar
+import time
 from nav_msgs.msg import Odometry as odom
 from sensor_msgs.msg import LaserScan
 
@@ -21,8 +22,11 @@ if __name__ == "__main__":
 
 lrender=0
 while not rospy.is_shutdown():
-    m.update(Lidar.getOrient())
+    #m.update(Lidar.getOrient())
     if (rospy.get_time()>lrender+2):
+        st=time.time()
         lrender=rospy.get_time()
         m.render()
+        dt=time.time()-st
+        print ('render time : ',dt)
     pass
