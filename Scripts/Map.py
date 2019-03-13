@@ -148,11 +148,11 @@ def scanWalls(data):
         findPPaths()
         subtimes.append(time.time() - st)
 
+        updatePath(Point(x / scale, y / scale))
         getSimilarPos()
 
         #print("subtimes = ",subtimes)
         scantime = getSubTimes(subtimes)
-        updatePath(Point(x / scale, y / scale))
         lt = time.time()
         #scantime = time.time() - st
 
@@ -678,6 +678,28 @@ def resetLargeNodes(range=20):
         if len(n.cn)>3:
             n.resetNode(nodes,maxnewdist,minkeepdist)
 
+def correctPositionalDrift():
+    global similarpos,x,y,scale,lscale
+    maxDist=100000
+    if(len(similarpos)==0):return
+    possNewPos=[]
+    for p in similarpos:
+        possNewPos.append([p.p.x*scale,p.p.y*scale])
+    closest=[100000,100000]
+    closestDist=1000000
+    for p in possNewPos:
+        dx=p[0]-x
+        dy=p[1]-y
+        dist=np.math.sqrt(dx*dx+dy*dy)
+        if(dist<closestDist):
+            closest=p
+            closestDist=dist
+    #print 'closest pos = ',closestDist
+    if(closestDist<90):
+        x=closest[0]
+        y=closest[1]
+
+
 def getSimilarPos():
     global carpath,similarpos
     similarpos=[]
@@ -694,15 +716,24 @@ def getSimilarPos():
                     if(o1<orientDif):orientDif=o1
                     if(o2<orientDif):orientDif=o2
                     if(orientDif<20):
-                        #print('dif between',d1,' and ',d2,' is ',orientDif)
-                        similarpos.append(n)
+                        d1 =getDirFromN1toN2(last,n)
+                        orientDif = abs(d1 - d2)
+                        o1 = abs((d2) - (d1 + 360))
+                        o2 = abs((d2) - (d1 - 360))
+                        if (o1 < orientDif): orientDif = o1
+                        if (o2 < orientDif): orientDif = o2
+                        #print 'dir from cpos to this node = ',round(orientDif),' current orient = ',round(d2)
+                        if(abs(orientDif)>20 and abs(orientDif)<160):
+                            similarpos.append(n)
+            correctPositionalDrift()
 
 
 def getDirFromN1toN2(n1,n2):
     dx=n2.p.getX()-n1.p.getX()
     dy=n2.p.getY()-n1.p.getY()
     orient=np.math.atan(dy/dx)*180/3.14
-
+    if(dx<0):orient=orient+180
+    return orient
 
 
 class Path():
