@@ -24,7 +24,7 @@ lrender=0
 dt=0
 while not rospy.is_shutdown():
     #m.update(Lidar.getOrient())
-    if (rospy.get_time()>lrender+5):
+    if (rospy.get_time()>lrender+2.5 and Lidar.isGoingStraight()):
         st=time.time()
         lrender=rospy.get_time()
         m.render(dt)

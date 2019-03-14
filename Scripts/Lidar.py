@@ -14,6 +14,7 @@ lt=0
 destDir = 1 # 0 = north , 90 = east , 180 = south , 270 = west
 hold=0 # 0 = normal , 1 = right , -1 = left
 lastPathFind=time.time()
+lastturn=0
 
 def get_data_array(data, a=0, b=240):
     PPD = 4.5  # points per degree
@@ -34,7 +35,7 @@ def print_data(data):
     # GLOBAL VARIABLES
     global reversing
     global maxSpeed
-    global hold,lt,lastPathFind
+    global hold,lt,lastPathFind,lastturn
 
     if (rospy.get_time()>lt+.8):
         lt=rospy.get_time()
@@ -172,8 +173,11 @@ def print_data(data):
     print ("left ", (int(round(distLeft*100))/100.0), " forward ", (int(round(distFront*100))/100.0), " right ", (int(round(distRight*100))/100.0))
     #print ("dtime =", dt)
     print ("")'''
-
+    lastturn=turn
     Controls.move(x, turn, speed)
+
+def isGoingStraight():
+    return abs(lastturn)<.1
 
 def getDistAt(data, ang1):
     print( "dist at angle", ang1," = ", get_data_array(data.ranges, ang1-1, ang1+1).mean())

@@ -31,6 +31,7 @@ connections=[]
 similarpos=[]
 
 subtimes=[0,0,0,0]
+methodIterations=[0,0,0,0]
 
 lastCorrection=time.time()
 haslapped=0
@@ -41,7 +42,7 @@ def update(dir):
     orient=d1
 
 def render(dt):
-    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime,wall,carpath,ppaths,similarpos
+    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime,wall,carpath,ppaths,similarpos,methodIterations
     c = Circle(Point(x/scale,y/scale), 7)
     c.setFill("black")
     front = Circle(Point(x / scale + (7 * np.math.cos(orient)), y / scale + (7 * np.math.sin(orient))), 5)
@@ -49,15 +50,16 @@ def render(dt):
 
     if(carpath!=None):
         s1 = 'recorded locations : ', len(carpath.path), ' s '
-        t1loc = Point(500, 50)
+        t1loc = Point(500, 40)
         t1 = Text(t1loc, s1)
     s2='last scan time : ',scantime,' s, render time = ',round(dt,2)
-    t2loc=Point(500,100)
+    t2loc=Point(500,80)
     t2=Text(t2loc,s2)
     s3=getTotalNodeData()
-    t3loc=Point(500,150)
+    t3loc=Point(500,160)
     t3=Text(t3loc,s3)
-
+    s4 = 'method iterations = ',methodIterations
+    t4 = Text(Point(500, 120), s4)
 
     clear(win)
     if carpath!=None:
@@ -101,6 +103,7 @@ def render(dt):
 
     t2.draw(win)
     t3.draw(win)
+    t4.draw(win)
 
     c.draw(win)
     front.draw(win)
@@ -196,7 +199,7 @@ def getClosestCarPath(n1,n2):
     return closest
 
 def findPPaths():
-    global ppaths, nodes, subtimes
+    global ppaths, nodes, subtimes, methodIterations
     if(nodes<9):return
     #ppaths=[]
     st=time.time()
@@ -227,6 +230,7 @@ def findPPaths():
                             if(abs(deltaOrient)>45):
                                 ppaths.append([n,n1])
     subtimes[2]=round((time.time()-st),3)
+    methodIterations[2]=methodIterations[2]+1
 
 
 
@@ -538,16 +542,17 @@ def getSlopeOf(l1):
     return (l1.p2.getY() - l1.p1.getY()) / ((l1.p2.getX() - l1.p1.getX()))
 
 def connectNodes(list):
-    global scale,lscale,nodes,subtimes
+    global scale,lscale,nodes,subtimes, methodIterations
     st=time.time()
     maxdist=1.2*lscale/scale
     for n in list:
         #n.printNode()
         if (n.hasDisconnect()):
-            n.connectWithClosest(list,maxdist)
+            n.connectWithClosest(list,maxdist,0)
             #if(n.hasNoConnected()):
             #    list.remove(n)
     subtimes[0]=round((time.time()-st),3)
+    methodIterations[0]=methodIterations[0]+1
     return list
 
 def connectVeryClose():
@@ -597,6 +602,7 @@ def simplify(range=20):
     pass
 
 def cleanNodes(range=40):
+    global subtimes,methodIterations
     st=time.time()
     removeTriangles(range)
     removeBranches(range)
@@ -604,6 +610,7 @@ def cleanNodes(range=40):
     resetLargeNodes(range)
     simplify(range)
     subtimes[1]=round((time.time()-st),3)
+    methodIterations[1]=methodIterations[1]+1
 
 
 
@@ -888,19 +895,25 @@ class Node():
     def getSize(self):
         return len(self.cn)
 
-    def connectWithClosest(self,nodes, maxdist):
+    def connectWithClosest(self,nodes, maxdist, indexLimited=0):
+        start=0
+        end=len(nodes)
+        if(indexLimited==1):
+            if(nodes.__contains__(self)):
+                start=nodes.index(self)
         if (len(self.cn)==0):
             c1=None
             c1dist = 100000
-            for n in nodes:
+            for n in itertools.islice(nodes,start,end):
                 if n != self:
                     dx = (self.p.x - n.p.x)
                     dy = (self.p.y - n.p.y)
-                    dist = np.sqrt(dx * dx + dy * dy)
-                    if dist < c1dist:
-                        #print("replace ",c1dist,' with ',dist)
-                        c1 = n
-                        c1dist = dist
+                    if(dx<maxdist and dy<maxdist):
+                        dist = np.sqrt(dx * dx + dy * dy)
+                        if dist < c1dist:
+                            #print("replace ",c1dist,' with ',dist)
+                            c1 = n
+                            c1dist = dist
             if c1dist < maxdist and c1 != None:
                 #if (c1.tryAddNode(self)):
                 c1.tryAddNode(self)
@@ -909,14 +922,15 @@ class Node():
         if (len(self.cn)==1):
             c2 = None
             c2dist = 100000
-            for n in nodes:
+            for n in itertools.islice(nodes,start,end):
                 if n != self and (not self.cn.__contains__(n)):
                     dx = (self.p.x - n.p.x)
                     dy = (self.p.y - n.p.y)
-                    dist = np.sqrt(dx * dx + dy * dy)
-                    if dist < c2dist:
-                        c2 = n
-                        c2dist = dist
+                    if (dx < maxdist and dy < maxdist):
+                        dist = np.sqrt(dx * dx + dy * dy)
+                        if dist < c2dist:
+                            c2 = n
+                            c2dist = dist
             if c2dist < maxdist and c2 != None:
                 c2.tryAddNode(self)
                 self.tryAddNode(c2)
