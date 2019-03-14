@@ -108,6 +108,9 @@ def render(dt):
     c.draw(win)
     front.draw(win)
 
+def exportMap(loc):
+    global win
+    #win.save(loc)
 
 def setConnections():
     global connections, nodes
