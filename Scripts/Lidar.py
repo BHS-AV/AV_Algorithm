@@ -37,11 +37,9 @@ def print_data(data):
     global maxSpeed
     global hold,lt,lastPathFind,lastturn
 
-    if (rospy.get_time()>lt+.8):
-        lt=rospy.get_time()
-        m.scanWalls(data.ranges)
 
-    m.update(nav.getOrient())
+
+
 
     # TIME
     global lastTime
@@ -60,6 +58,13 @@ def print_data(data):
     distFront = dataFront.mean()
     distLeft = dataLeft.mean()
     distRight = dataRight.mean()
+
+    #MAPPING
+    m.update(nav.getOrient())
+    if (rospy.get_time() > lt + .8):
+        lt = rospy.get_time()
+        m.scanWalls(data.ranges,distLeft,distRight,distFront)
+
 
     # ORIENTATION
     orient = nav.getOrient()

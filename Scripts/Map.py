@@ -30,8 +30,8 @@ ppaths=[]
 connections=[]
 similarpos=[]
 
-subtimes=[0,0,0,0]
-methodIterations=[0,0,0,0]
+subtimes=[0,0,0,0,0]
+methodIterations=[0,0]
 
 lastCorrection=time.time()
 haslapped=0
@@ -77,9 +77,13 @@ def render(dt):
         size=len(n.cn)
         rad=size/2.0+1
         p2 = Circle(n.p, rad)
-        if size<6:
+        if size<6 and size>1:
             cmult=size/5.0
             p2.setFill(color_rgb(250*cmult,0,250*(cmult)))#250*size,0,250*(1-size)
+        elif size==1:
+            p2=Circle(n.p,4)
+            p2.setFill("orange")
+
         else:
             p2.setFill("red")
 
@@ -123,7 +127,7 @@ def setConnections():
                 connections.append(NodalConnection(n,n1))
 
 
-def scanWalls(data):
+def scanWalls(data,dl,dr,df):
     global orient,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes, scale, lscale, nodes, refbool, lastCorrection, haslapped
     if (orient==0):return
     samples=20
@@ -143,6 +147,10 @@ def scanWalls(data):
         if (rp1!=None):
             points.append(rp1)
 
+    subtimes[3]=round(time.time()-st,3)
+    st=time.time()
+
+
     mininitdist=.25*lscale/scale
     for p in points:
         n=Node(p)
@@ -151,16 +159,17 @@ def scanWalls(data):
 
     points=[]
     removeAbsentNodes()
+    subtimes[4]=round(time.time()-st,3)
     nodes = connectNodes(nodes)
 
     if (time.time() > lt + .5):
-        updatePath(Point(x / scale, y / scale))
+        updatePath(Point(x / scale, y / scale),dl,dr,df)
         if(time.time()-lastCorrection>10):
-            getSimilarPos()
-            lastCorrection=time.time()
+            getSimilarPos(dl,dr,df)
         cleanNodes(scanrange)
         #findPPaths()
 
+    methodIterations[0]=methodIterations[0]+1
     scantime = getSubTimes(subtimes)
 
 
@@ -233,16 +242,17 @@ def findPPaths():
                             if(abs(deltaOrient)>45):
                                 ppaths.append([n,n1])
     subtimes[2]=round((time.time()-st),3)
-    methodIterations[2]=methodIterations[2]+1
+    methodIterations[1]=methodIterations[1]+1
 
 
 
-def updatePath(pos):
+def updatePath(pos,dl,dr,df):
     global carpath
+    distdata=[dl,dr,df]
     if carpath==None:
-        carpath=Path(pos)
+        carpath=Path(pos,distdata)
     else:
-        carpath.addPos(pos)
+        carpath.addPos(pos,distdata)
 
 def combineDuplicates(n1, range):
     global nodes
@@ -555,7 +565,6 @@ def connectNodes(list):
             #if(n.hasNoConnected()):
             #    list.remove(n)
     subtimes[0]=round((time.time()-st),3)
-    methodIterations[0]=methodIterations[0]+1
     return list
 
 def connectVeryClose():
@@ -613,7 +622,6 @@ def cleanNodes(range=40):
     resetLargeNodes(range)
     simplify(range)
     subtimes[1]=round((time.time()-st),3)
-    methodIterations[1]=methodIterations[1]+1
 
 
 
@@ -700,13 +708,18 @@ def resetLargeNodes(range=20):
         if len(n.cn)>3:
             n.resetNode(nodes,maxnewdist,minkeepdist)
 
-def correctPositionalDrift():
-    global similarpos,x,y,scale,lscale
+def correctPositionalDrift(data):
+    global similarpos,x,y,scale,lscale, lastCorrection
     maxDist=100000
     if(len(similarpos)==0):return
     possNewPos=[]
     for p in similarpos:
-        possNewPos.append([p.p.x*scale,p.p.y*scale])
+        datasim = getDataSim(data, p.data)
+        print 'data sim = ', datasim, '%'
+        if(datasim>.8):
+            possNewPos.append([p.p.x*scale,p.p.y*scale])
+    if(len(possNewPos)==0):
+        return
     closest=[100000,100000]
     closestDist=1000000
     for p in possNewPos:
@@ -716,17 +729,45 @@ def correctPositionalDrift():
         if(dist<closestDist):
             closest=p
             closestDist=dist
+
     #print 'closest pos = ',closestDist
-    if(closestDist<90 and closestDist>30):
+    if(closestDist<120 and closestDist>30):
         print ('moved from ',x,',',y,' to ',closest)
-        haslapped=1
+        #haslapped=1
+        dx=(closest[0]-x)/scale
+        dy=(closest[1]-y)/scale
+        correctRecentPoints(dx,dy)
+        lastCorrection = time.time()
         x=(closest[0])
         y=(closest[1])
 
+def correctRecentPoints(dx,dy,range=20):
+    global carpath
+    end=len(carpath.path)
+    start=end-range
+    if(start<0):start=0
+    rr=end-start
+    percent=0
+    for n in itertools.islice(carpath.path,start,end):
+        percent=percent+(1.0/rr)
+        dxn=dx*percent
+        dyn=dy*percent
+        n.p=Point(n.p.x+dxn,n.p.y+dyn)
 
-def getSimilarPos():
+def getDataSim(d1,d2):
+    p=0
+    for i in range(3):
+        phere=(d1[i]/d2[i])
+        if(d1[i]>d2[i]):
+            phere=(d2[i]/d1[i])
+        p=p+phere
+    p=p/3.0
+    return p
+
+def getSimilarPos(dl,dr,df):
     global carpath,similarpos
     similarpos=[]
+    data=[dl,dr,df]
     if (carpath!=None):
         if(len(carpath.path)>10):
             last=carpath.path[len(carpath.path)-1]
@@ -746,10 +787,9 @@ def getSimilarPos():
                         o2 = abs((d2) - (d1 - 360))
                         if (o1 < orientDif): orientDif = o1
                         if (o2 < orientDif): orientDif = o2
-                        #print 'dir from cpos to this node = ',round(orientDif),' current orient = ',round(d2)
                         if(abs(orientDif)>60 and abs(orientDif)<120):
                             similarpos.append(n)
-            correctPositionalDrift()
+            correctPositionalDrift(data)
 
 
 def getDirFromN1toN2(n1,n2):
@@ -763,15 +803,17 @@ def getDirFromN1toN2(n1,n2):
 class Path():
     path=[]
 
-    def __init__(self,pos):
+    def __init__(self,pos,data):
         global orient
         n=Node(pos)
         n.dir=orient
+        n.data=data
         self.path=[n]
 
-    def addPos(self, pos):
+    def addPos(self, pos, data):
         global orient
         n=Node(pos)
+        n.data=data
         n.dir=orient
         lastNode=None
         pathlen=len(self.path)
@@ -802,6 +844,7 @@ class Path():
 
 class Node():
     p=None
+    data=None
     dir=0
     cn=[]
     def __init__(self,p1):
