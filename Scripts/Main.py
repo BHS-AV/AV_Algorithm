@@ -44,8 +44,9 @@ while not rospy.is_shutdown():
         dt=time.time()-st
         #print ('render time : ',dt)
     if (time.time() - lastsave > 8):
-        print ('saved')
+        st1=time.time()
         m.saveImg(imgnum)
         lastsave = time.time()
         imgnum = imgnum + 1
+        print ('img saved in ',(time.time()-st1),' sec')
     pass
