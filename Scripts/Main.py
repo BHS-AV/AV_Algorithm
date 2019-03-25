@@ -22,6 +22,8 @@ if __name__ == "__main__":
 
 lrender=0
 dt=0
+lastsave=time.time()
+imgnum=0
 while not rospy.is_shutdown():
     #m.update(Lidar.getOrient())
     if (rospy.get_time()>lrender+2.5 and Lidar.isGoingStraight()):
@@ -30,4 +32,9 @@ while not rospy.is_shutdown():
         m.render(dt)
         dt=time.time()-st
         #print ('render time : ',dt)
+    if (time.time() - lastsave > 8):
+        print ('saved')
+        m.saveImg(imgnum)
+        lastsave = time.time()
+        imgnum = imgnum + 1
     pass

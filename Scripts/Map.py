@@ -2,7 +2,13 @@ import numpy as np
 import itertools
 from graphics import *
 
-win = GraphWin("map_display_window", 1000, 1000)
+height=1000
+width=1000
+anchorpoint=Point(width/2,height/2)
+
+
+win = GraphWin("map_display_window", width, height)
+image=Image(anchorpoint, height, width)
 
 c=None
 front=None
@@ -1225,4 +1231,12 @@ class LineFunc():
     
     def __repr__(self):
         return "f(x)=".format(str(self.m),"x+",str(self.b))
+def saveImg(imgnum):
+    # saves the current TKinter object in postscript format
+    win.postscript(file="track/image.eps", colormode='color')
 
+    # Convert from eps format to gif format using PIL
+    from PIL import Image as NewImage
+    img = NewImage.open("track/image.eps")
+    string='track/track'+str(imgnum)+'.gif'
+    img.save(string, "gif")
