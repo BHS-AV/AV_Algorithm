@@ -36,7 +36,7 @@ ppaths=[]
 connections=[]
 similarpos=[]
 
-subtimes=[0,0,0,0,0]
+subtimes=[0,0,0,0,0,0]
 methodIterations=[0,0]
 
 nearbyNodes=[]
@@ -151,7 +151,7 @@ def setConnections():
 
 
 def findRoutes():
-    global nodes, orient, x,y,scale,lscale,nearbyNodes
+    global nodes, orient, x,y,scale,lscale,nearbyNodes,subtimes,methodIterations
     st=time.time()
     nearbyNodes=[]
     car=Point(x/scale,y/scale)
@@ -172,7 +172,10 @@ def findRoutes():
                 pass
                 nor=np.math.tan(dy/dx)
                 if(dx<0):nor+=3.14159
-
+                dori=nor-orient
+                print('dif between ur orient ',orient,' and relative dir ',nor,' is ',dori)
+                if(abs(dori)<fov/2):
+                    nearbyNodes.append(n)
 
                 #nearbynodes.append(n)
 
@@ -205,6 +208,7 @@ def findRoutes():
                         wallpairs.append([w1, w2])
 
     dt=time.time()-st
+    subtimes[5]=dt
 #                    print (disttomidpoint)
     print ('there are ',len(wallpairs),' in a set of ',len(walls),' (found in ',round(dt,4),' sec)')
 
