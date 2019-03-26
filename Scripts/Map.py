@@ -39,6 +39,8 @@ similarpos=[]
 subtimes=[0,0,0,0,0]
 methodIterations=[0,0]
 
+nearbyNodes=[]
+
 lastCorrection=time.time()
 haslapped=0
 
@@ -50,7 +52,7 @@ def update(dir):
     orient=d1
 
 def render(dt):
-    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime,wall,carpath,ppaths,similarpos,methodIterations
+    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime,wall,carpath,ppaths,similarpos,methodIterations,nearbyNodes
     c = Circle(Point(x/scale,y/scale), 7)
     c.setFill("black")
     front = Circle(Point(x / scale + (7 * np.math.cos(orient)), y / scale + (7 * np.math.sin(orient))), 5)
@@ -88,6 +90,10 @@ def render(dt):
             l.setFill("blue")
             l.draw(win)
 
+    for n in nearbyNodes:
+        nnc=Circle(n.p,5)
+        nnc.setFill("yellow")
+        nnc.draw(win)
 
     for n in nodes:
         size=len(n.cn)
@@ -143,30 +149,41 @@ def setConnections():
                 connections.append(NodalConnection(n,n1))
 
 
+
 def findRoutes():
-    global nodes, orient, x,y,scale,lscale
+    global nodes, orient, x,y,scale,lscale,nearbyNodes
     st=time.time()
-    nearbynodes=[]
+    nearbyNodes=[]
     car=Point(x/scale,y/scale)
     maxdist=5.0*lscale/scale
 
     fov = 3.14159 * 4 / 3
     right = orient + (fov / 2)
     left = orient + (fov / 2)
-    rm = np.math.tan(right)
-    lm = np.math.tan(left)
+
+
+
 
     for n in nodes:
-        if(abs(car.x-n.p.x)<maxdist):
-            if(abs(car.y-n.p.y)<maxdist):
-                nearbynodes.append(n)
+        dx=n.p.x-car.x
+        if(abs(dx)<maxdist):
+            dy = n.p.y - car.y
+            if(abs(dy)<maxdist):
+                pass
+                nor=np.math.tan(dy/dx)
+                if(dx<0):nor+=3.14159
+
+
+                #nearbynodes.append(n)
+
+
 
     walls=[]
-    for n in nearbynodes:
-        i=nearbynodes.index(n)
+    for n in nearbyNodes:
+        i=nearbyNodes.index(n)
         for n1 in n.cn:
-            if(nearbynodes.__contains__(n1)):
-                i1=nearbynodes.index(n1)
+            if(nearbyNodes.__contains__(n1)):
+                i1=nearbyNodes.index(n1)
                 if(i1>i):
                     walls.append(NodalFunc(n,n1))
             else:
