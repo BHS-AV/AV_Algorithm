@@ -42,6 +42,8 @@ methodIterations=[0,0]
 lastCorrection=time.time()
 haslapped=0
 
+routedirs=[]
+
 def update(dir):
     global win,front,c,x,y,orient, oldLocs
     d1=dir/180.0*3.14
@@ -53,6 +55,11 @@ def render(dt):
     c.setFill("black")
     front = Circle(Point(x / scale + (7 * np.math.cos(orient)), y / scale + (7 * np.math.sin(orient))), 5)
     front.setFill("red")
+
+    v10=Circle(Point(x/scale,y/scale),10*lscale/scale)
+    v5=Circle(Point(x/scale,y/scale),5*lscale/scale)
+    #v3=Circle(Point(x/scale,y/scale),5*lscale/scale)
+    #v.setFill("yellow")
 
     if(carpath!=None):
         s1 = 'recorded locations : ', len(carpath.path), ' s '
@@ -68,6 +75,9 @@ def render(dt):
     t4 = Text(Point(500, 120), s4)
 
     clear(win)
+    v10.draw(win)
+    v5.draw(win)
+
     if carpath!=None:
         dirLines = carpath.getOrientLines()
         path=carpath.getLines()
@@ -133,6 +143,56 @@ def setConnections():
                 connections.append(NodalConnection(n,n1))
 
 
+def findRoutes():
+    global nodes, orient, x,y,scale,lscale
+    st=time.time()
+    nearbynodes=[]
+    car=Point(x/scale,y/scale)
+    maxdist=5.0*lscale/scale
+
+    fov = 3.14159 * 4 / 3
+    right = orient + (fov / 2)
+    left = orient + (fov / 2)
+    rm = np.math.tan(right)
+    lm = np.math.tan(left)
+
+    for n in nodes:
+        if(abs(car.x-n.p.x)<maxdist):
+            if(abs(car.y-n.p.y)<maxdist):
+                nearbynodes.append(n)
+
+    walls=[]
+    for n in nearbynodes:
+        i=nearbynodes.index(n)
+        for n1 in n.cn:
+            if(nearbynodes.__contains__(n1)):
+                i1=nearbynodes.index(n1)
+                if(i1>i):
+                    walls.append(NodalFunc(n,n1))
+            else:
+                walls.append(NodalFunc(n,n1))
+    #print ('there are '+str(len(walls))+' walls nearby')
+    wallpairs=[]
+    mindist=2*lscale/scale
+    maxodif=10
+    for w1 in walls:
+        i1=walls.index(w1)
+        #print w1.orient
+        for w2 in walls:
+            i2 = walls.index(w2)
+            if(i2>i1):
+                odif=w1.getOrientDif(w2)
+                if(abs(odif)<maxodif):
+                    disttomidpoint=w1.getDistToMidPoint(w2)
+                    if(disttomidpoint>mindist):
+                        wallpairs.append([w1, w2])
+
+    dt=time.time()-st
+#                    print (disttomidpoint)
+    print ('there are ',len(wallpairs),' in a set of ',len(walls),' (found in ',round(dt,4),' sec)')
+
+
+
 def scanWalls(data,dl,dr,df):
     global orient,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes, scale, lscale, nodes, refbool, lastCorrection, haslapped
     if (orient==0):return
@@ -173,6 +233,7 @@ def scanWalls(data,dl,dr,df):
         if(time.time()-lastCorrection>10):
             getSimilarPos(dl,dr,df)
         cleanNodes(scanrange)
+        findRoutes()
         #findPPaths()
 
     methodIterations[0]=methodIterations[0]+1
@@ -1070,7 +1131,8 @@ class NodalFunc():
             return dor
         return dor1
 
-
+    def getCenter(self):
+        return Point((self.n1.p.x + self.n2.p.x) / 2.0, (self.n1.p.y + self.n2.p.y) / 2.0)
 
     def getDistToMidPoint(self, line):
         return self.getDistToPoint(line.getCenter())
