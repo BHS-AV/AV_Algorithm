@@ -45,6 +45,20 @@ lastCorrection=time.time()
 haslapped=0
 
 routedirs=[]
+lastCarState=None
+
+class carState():
+    x=0
+    y=0
+    orient=0
+    def __init__(self, x,y,orient):
+        self.x=x
+        self.y=y
+        self.orient=orient
+    def update(self, x,y,orient):
+        self.x=x
+        self.y=y
+        self.orient=orient
 
 def update(dir):
     global win,front,c,x,y,orient, oldLocs
@@ -52,16 +66,22 @@ def update(dir):
     orient=d1
 
 def render(dt):
-    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime,wall,carpath,ppaths,similarpos,methodIterations,nearbyNodes
-    c = Circle(Point(x/scale,y/scale), 7)
-    c.setFill("black")
-    front = Circle(Point(x / scale + (7 * np.math.cos(orient)), y / scale + (7 * np.math.sin(orient))), 5)
-    front.setFill("red")
+    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime,wall,carpath,lastCarState,ppaths,similarpos,methodIterations,nearbyNodes
 
-    v10=Circle(Point(x/scale,y/scale),10*lscale/scale)
-    v5=Circle(Point(x/scale,y/scale),5*lscale/scale)
-    #v3=Circle(Point(x/scale,y/scale),5*lscale/scale)
-    #v.setFill("yellow")
+
+    cx=x
+    cy=y
+    co=orient
+    if(lastCarState!=None):
+        cx=lastCarState.x
+        cy=lastCarState.y
+        co=lastCarState.orient
+    c = Circle(Point(cx/scale,cy/scale), 7)
+    c.setFill("black")
+    front = Circle(Point(cx / scale + (7 * np.math.cos(co)), cy / scale + (7 * np.math.sin(co))), 5)
+    front.setFill("red")
+    v10=Circle(Point(cx/scale,cy/scale),10*lscale/scale)
+    v5=Circle(Point(cx/scale,cy/scale),5*lscale/scale)
 
     if(carpath!=None):
         s1 = 'recorded locations : ', len(carpath.path), ' s '
@@ -91,9 +111,14 @@ def render(dt):
             l.draw(win)
 
     for n in nearbyNodes:
-        nnc=Circle(n.p,5)
+        nnc=Circle(n.p,12)
         nnc.setFill("yellow")
         nnc.draw(win)
+        if(nodes.__contains__(n)):
+            nnct=Text(Point(n.p.x+5,n.p.y+5),str(nodes.index(n)))
+            nnct.setSize(5)
+            nnct.setFill("blue")
+            nnct.draw(win)
 
     for n in nodes:
         size=len(n.cn)
@@ -160,7 +185,7 @@ def findRoutes():
     fov = 3.14159 * 4 / 3
     right = orient + (fov / 2)
     left = orient + (fov / 2)
-
+    tau=3.14159*2
 
 
 
@@ -171,10 +196,12 @@ def findRoutes():
             if(abs(dy)<maxdist):
                 pass
                 nor=np.math.tan(dy/dx)
-                if(dx<0):nor+=3.14159
+                if(dx<0):
+                    nor=nor+3.14159
                 dori=nor-orient
-                print('dif between ur orient ',orient,' and relative dir ',nor,' is ',dori)
-                if(abs(dori)<fov/2):
+                if(abs(dori)<fov/2 or abs(dori-tau)<fov/2 or abs(dori+tau)<fov/2):
+                    i=nodes.index(n)
+                    print('for node ',i,' dif between ur orient ', round(orient,2), ' and relative dir ', round(nor,2),' ('+str(round(dx,2))+','+str(round(dx,2))+') is ', round(dori,2))
                     nearbyNodes.append(n)
 
                 #nearbynodes.append(n)
@@ -215,7 +242,7 @@ def findRoutes():
 
 
 def scanWalls(data,dl,dr,df):
-    global orient,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes, scale, lscale, nodes, refbool, lastCorrection, haslapped
+    global orient,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes, scale, lscale,lastCarState, nodes, refbool, lastCorrection, haslapped
     if (orient==0):return
     samples=20
     st=time.time()
@@ -255,12 +282,19 @@ def scanWalls(data,dl,dr,df):
             getSimilarPos(dl,dr,df)
         cleanNodes(scanrange)
         findRoutes()
+        updateCarState()
         #findPPaths()
 
     methodIterations[0]=methodIterations[0]+1
     scantime = getSubTimes(subtimes)
 
 
+def updateCarState():
+    global lastCarState,x,y,orient
+    if lastCarState==None:
+        lastCarState=carState(x,y,orient)
+    else:
+        lastCarState.update(x,y,orient)
 
 def getSubTimes(subtimes):
     t=0

@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
 lrender=0
 dt=0
-lastsave=time.time()
+lastsave=rospy.get_time()
 imgnum=0
 import os, shutil
 folder = '/home/racecar/PycharmProjects/AV_Algorithm/Scripts/track'
@@ -43,10 +43,10 @@ while not rospy.is_shutdown():
         m.render(dt)
         dt=time.time()-st
         #print ('render time : ',dt)
-    if (time.time() - lastsave > 8):
+    if (rospy.get_time() - lastsave > 8):
         st1=time.time()
         m.saveImg(imgnum)
-        lastsave = time.time()
+        lastsave = rospy.get_time()
         imgnum = imgnum + 1
         print ('img saved in ',(time.time()-st1),' sec')
     pass
