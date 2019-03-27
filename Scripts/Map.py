@@ -35,11 +35,13 @@ carpath=None
 ppaths=[]
 connections=[]
 similarpos=[]
-
+fov=3.14159*4.0/3.0
 subtimes=[0,0,0,0,0,0]
 methodIterations=[0,0]
 
+#testing variables
 nearbyNodes=[]
+
 
 lastCorrection=time.time()
 haslapped=0
@@ -66,7 +68,7 @@ def update(dir):
     orient=d1
 
 def render(dt):
-    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime,wall,carpath,lastCarState,ppaths,similarpos,methodIterations,nearbyNodes
+    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime,wall,carpath,wallpairs,lastCarState,ppaths,similarpos,methodIterations,nearbyNodes
 
 
     cx=x
@@ -80,8 +82,16 @@ def render(dt):
     c.setFill("black")
     front = Circle(Point(cx / scale + (7 * np.math.cos(co)), cy / scale + (7 * np.math.sin(co))), 5)
     front.setFill("red")
-    v10=Circle(Point(cx/scale,cy/scale),10*lscale/scale)
-    v5=Circle(Point(cx/scale,cy/scale),5*lscale/scale)
+
+    '''maxvis=10*lscale/scale
+
+    rl=Line(Point(cx/scale,cy/scale),Point(cx / scale + (maxvis * np.math.cos(co + (fov / 2))), cy / scale + (maxvis * np.math.sin(co + (fov / 2)))))
+    ll=Line(Point(cx/scale,cy/scale),Point(cx / scale + (maxvis * np.math.cos(co - (fov / 2))), cy / scale + (maxvis * np.math.sin(co - (fov / 2)))))
+    rl.setFill("orange")
+    ll.setFill("orange")
+    '''
+    #v10=Circle(Point(cx/scale,cy/scale),10*lscale/scale)
+    #v5=Circle(Point(cx/scale,cy/scale),5*lscale/scale)
 
     if(carpath!=None):
         s1 = 'recorded locations : ', len(carpath.path), ' s '
@@ -96,9 +106,12 @@ def render(dt):
     s4 = 'method iterations = ',methodIterations
     t4 = Text(Point(500, 120), s4)
 
+
     clear(win)
-    v10.draw(win)
-    v5.draw(win)
+    #ll.draw(win)
+    #rl.draw(win)
+    #v10.draw(win)
+    #v5.draw(win)
 
     if carpath!=None:
         dirLines = carpath.getOrientLines()
@@ -110,8 +123,8 @@ def render(dt):
             l.setFill("blue")
             l.draw(win)
 
-    for n in nearbyNodes:
-        nnc=Circle(n.p,12)
+    '''for n in nearbyNodes:
+        nnc=Circle(n.p,4)
         nnc.setFill("yellow")
         nnc.draw(win)
         if(nodes.__contains__(n)):
@@ -119,7 +132,7 @@ def render(dt):
             nnct.setSize(5)
             nnct.setFill("blue")
             nnct.draw(win)
-
+    '''
     for n in nodes:
         size=len(n.cn)
         rad=size/2.0+1
@@ -187,8 +200,6 @@ def findRoutes():
     left = orient + (fov / 2)
     tau=3.14159*2
 
-
-
     for n in nodes:
         dx=n.p.x-car.x
         if(abs(dx)<maxdist):
@@ -219,25 +230,36 @@ def findRoutes():
             else:
                 walls.append(NodalFunc(n,n1))
     #print ('there are '+str(len(walls))+' walls nearby')
-    wallpairs=[]
-    mindist=2*lscale/scale
-    maxodif=10
-    for w1 in walls:
-        i1=walls.index(w1)
-        #print w1.orient
-        for w2 in walls:
-            i2 = walls.index(w2)
-            if(i2>i1):
-                odif=w1.getOrientDif(w2)
-                if(abs(odif)<maxodif):
-                    disttomidpoint=w1.getDistToMidPoint(w2)
-                    if(disttomidpoint>mindist):
-                        wallpairs.append([w1, w2])
+
+    maxorientdif=3.14159/9
+    directions=[]
+    for w in walls:
+        dir=w.orient
+        isNew=True
+        for d in directions:
+            #d=float(d)
+            dirdif=abs(d-dir)
+            dirdif1=abs(d-(dir-3.14159))
+            dirdif2=abs(d-(dir+3.14159))
+            if(dirdif1<dirdif):
+                dirdif=dirdif1
+            if(dirdif2<dirdif):
+                dirdif=dirdif2
+            if(dirdif<maxorientdif):
+                isNew=False
+                break
+        if(isNew):
+            directions.append(dir)
+        #directions.append(w.orient)
+
+
+
 
     dt=time.time()-st
     subtimes[5]=dt
+    print 'directions : ',directions
 #                    print (disttomidpoint)
-    print ('there are ',len(wallpairs),' in a set of ',len(walls),' (found in ',round(dt,4),' sec)')
+    #print ('there are ',len(directions),' in a set of ',len(walls),' (found in ',round(dt,4),' sec)')
 
 
 
