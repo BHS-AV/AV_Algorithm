@@ -68,7 +68,7 @@ def update(dir):
     orient=d1
 
 def render(dt):
-    global win,front,c,x,y,orient, oldLocs,points,allwalls,scantime,wall,carpath,wallpairs,lastCarState,ppaths,similarpos,methodIterations,nearbyNodes
+    global win,front,c,x,y,orient, routedirs,oldLocs,points,allwalls,scantime,wall,carpath,wallpairs,lastCarState,ppaths,similarpos,methodIterations,nearbyNodes
 
 
     cx=x
@@ -106,6 +106,7 @@ def render(dt):
     s4 = 'method iterations = ',methodIterations
     t4 = Text(Point(500, 120), s4)
 
+    crp=Point(cx/scale,cy/scale)
 
     clear(win)
     #ll.draw(win)
@@ -162,6 +163,16 @@ def render(dt):
         p1.setFill("green")
         p1.draw(win)
 
+    for dir in routedirs:
+        ldx=(25 * np.math.cos(dir))
+        ldy=(25 * np.math.sin(dir))
+        linep1=Point(crp.x + ldx , crp.y + ldy )
+        linep2=Point(crp.x - ldx , crp.y - ldy )
+        line=Line(linep1,linep2)
+        line.setArrow('both')
+        line.setFill("green")
+        line.draw(win)
+
     if (carpath!=None):
         t1.draw(win)
 
@@ -189,7 +200,7 @@ def setConnections():
 
 
 def findRoutes():
-    global nodes, orient, x,y,scale,lscale,nearbyNodes,subtimes,methodIterations
+    global nodes, orient, x,y,scale,lscale,nearbyNodes,subtimes,methodIterations,routedirs
     st=time.time()
     nearbyNodes=[]
     car=Point(x/scale,y/scale)
@@ -231,25 +242,43 @@ def findRoutes():
                 walls.append(NodalFunc(n,n1))
     #print ('there are '+str(len(walls))+' walls nearby')
 
-    maxorientdif=3.14159/9
+    maxorientdif=3.14159/12
     directions=[]
     for w in walls:
         dir=w.orient
         isNew=True
+        mostsimilarindex=-1
+        highestsim=1000
+
         for d in directions:
-            #d=float(d)
-            dirdif=abs(d-dir)
-            dirdif1=abs(d-(dir-3.14159))
-            dirdif2=abs(d-(dir+3.14159))
+            dir1=d[0]
+            dirdif=abs(dir1-dir)
+            dirdif1=abs(dir1-(dir-3.14159))
+            dirdif2=abs(dir1-(dir+3.14159))
             if(dirdif1<dirdif):
                 dirdif=dirdif1
             if(dirdif2<dirdif):
                 dirdif=dirdif2
             if(dirdif<maxorientdif):
-                isNew=False
-                break
-        if(isNew):
-            directions.append(dir)
+                if(dirdif<highestsim):
+                    mostsimilarindex=directions.index(d)
+                    highestsim=dirdif
+
+        if(mostsimilarindex==-1):
+            directions.append([dir, 1])
+        else:
+            d1 = dir
+            if (abs(dir + 3.14 - dir1) < abs(d1 - dir1)): d1 = dir + 3.14159
+            if (abs(dir - 3.14 - dir1) < abs(d1 - dir1)): d1 = dir - 3.14159
+            directions[mostsimilarindex][0] = directions[mostsimilarindex][1] * directions[mostsimilarindex][0] + d1
+            directions[mostsimilarindex][1] = directions[mostsimilarindex][1] + 1
+            directions[mostsimilarindex][0] = directions[mostsimilarindex][0] / directions[mostsimilarindex][1]
+
+    routedirs = []
+    for d in directions:
+        if (d[1]>3):
+            routedirs.append(d[0])
+
         #directions.append(w.orient)
 
 
@@ -1191,7 +1220,7 @@ class NodalFunc():
         else:
             self.m = (n2.p.y - n1.p.y) / ((n2.p.x - n1.p.x))
         self.b = n1.p.y - (n1.p.x * self.m)
-        self.orient = np.math.atan(1 / self.m)
+        self.orient = np.math.atan(self.m)
 
     def f(self, x):
         return (self.m * x) + self.b
