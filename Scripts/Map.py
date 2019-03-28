@@ -28,6 +28,7 @@ points=[]
 allwalls=[]
 wall=[]
 nodes=[]
+oldNodes=[]
 carpath=None
 ppaths=[]
 connections=[]
@@ -68,7 +69,7 @@ def update(dir):
     orient=d1
 
 def render(dt):
-    global win,front,c,x,y,orient, routedirs,oldLocs,points,allwalls,dirIntersects,scantime,wall,carpath,wallpairs,lastCarState,ppaths,similarpos,methodIterations
+    global win,front,c,x,y,orient,oldNodes, routedirs,oldLocs,points,allwalls,dirIntersects,scantime,wall,carpath,wallpairs,lastCarState,ppaths,similarpos,methodIterations
     cx=x
     cy=y
     co=orient
@@ -124,6 +125,16 @@ def render(dt):
         else:
             p2.setFill("red")
 
+        p2.draw(win)
+        lines=n.getLines()
+        for l in lines:
+            l.draw(win)
+
+    for n in oldNodes:
+        size=len(n.cn)
+        rad=size/2.0+1
+        p2 = Circle(n.p, rad)
+        p2.setFill('grey')
         p2.draw(win)
         lines=n.getLines()
         for l in lines:
@@ -405,6 +416,7 @@ def findPPaths():
     global ppaths, nodes, subtimes, methodIterations
     if(nodes<9):return
     #ppaths=[]
+    #TODO IMPLEMENT NEW OLDNODE SYSTEM
     st=time.time()
     range=30
     end=len(nodes)-10
@@ -822,10 +834,16 @@ def cleanNodes(range=40):
     removeBranches(range)
     removeTwinNodes(range)
     resetLargeNodes(range)
+    archiveOldNodes()
     simplify(range)
     subtimes[3]=round((time.time()-st),3)
 
-
+def archiveOldNodes():
+    global nodes, oldNodes, methodIterations
+    for n in nodes:
+        if(methodIterations[0]-n.iterationOfCreation>25):
+            oldNodes.append(n)
+            nodes.remove(n)
 
 
 def getTotalNodeData():
@@ -863,11 +881,11 @@ def removeTwinNodes(range=20):
 
 
 def removeAbsentNodes():
-    global nodes
+    global nodes, oldNodes
     for n in nodes:
         #n.removeDuplicateCN
         for n1 in n.cn:
-            if not nodes.__contains__(n1):
+            if not nodes.__contains__(n1) and not oldNodes.__contains__(n):
 
                 #print ("phantom node deleted")
                 n.cn.remove(n1)
