@@ -20,10 +20,7 @@ lt=time.time()
 lt2=time.time()-.25
 lscale=80.0
 scantime=0
-
 refbool=0
-
-
 
 oldLocs=[Point(x / scale, y / scale)]
 points=[]
@@ -36,12 +33,13 @@ ppaths=[]
 connections=[]
 similarpos=[]
 fov=3.14159*4.0/3.0
+
 subtimes=[0,0,0,0,0,0]
-methodIterations=[0,0]
-
-#testing variables
-nearbyNodes=[]
-
+#                       WHAT ARE THE SUBTIMES?
+# 0 - scanning , 1 - cleaning data , 2 - connecting
+# 3 - cleaning , 4  - routing      , 5 - locating exits
+methodIterations=[0,0,0]
+# 0 - scan/update , 1 - cleaning methods , 2 - locating exits
 
 lastCorrection=time.time()
 haslapped=0
@@ -68,9 +66,7 @@ def update(dir):
     orient=d1
 
 def render(dt):
-    global win,front,c,x,y,orient, routedirs,oldLocs,points,allwalls,scantime,wall,carpath,wallpairs,lastCarState,ppaths,similarpos,methodIterations,nearbyNodes
-
-
+    global win,front,c,x,y,orient, routedirs,oldLocs,points,allwalls,scantime,wall,carpath,wallpairs,lastCarState,ppaths,similarpos,methodIterations
     cx=x
     cy=y
     co=orient
@@ -78,41 +74,30 @@ def render(dt):
         cx=lastCarState.x
         cy=lastCarState.y
         co=lastCarState.orient
+    crp=Point(cx/scale,cy/scale)
+
     c = Circle(Point(cx/scale,cy/scale), 7)
     c.setFill("black")
     front = Circle(Point(cx / scale + (7 * np.math.cos(co)), cy / scale + (7 * np.math.sin(co))), 5)
     front.setFill("red")
 
-    '''maxvis=10*lscale/scale
-
-    rl=Line(Point(cx/scale,cy/scale),Point(cx / scale + (maxvis * np.math.cos(co + (fov / 2))), cy / scale + (maxvis * np.math.sin(co + (fov / 2)))))
-    ll=Line(Point(cx/scale,cy/scale),Point(cx / scale + (maxvis * np.math.cos(co - (fov / 2))), cy / scale + (maxvis * np.math.sin(co - (fov / 2)))))
-    rl.setFill("orange")
-    ll.setFill("orange")
-    '''
-    #v10=Circle(Point(cx/scale,cy/scale),10*lscale/scale)
-    #v5=Circle(Point(cx/scale,cy/scale),5*lscale/scale)
-
-    if(carpath!=None):
-        s1 = 'recorded locations : ', len(carpath.path), ' s '
-        t1loc = Point(500, 40)
-        t1 = Text(t1loc, s1)
-    s2='last scan time : ',scantime,' s, render time = ',round(dt,2)
-    t2loc=Point(500,80)
+    s2='last scan time : '+str(scantime)+' s, render time = '+str(round(dt,2))
+    t2loc=Point(500,15)
     t2=Text(t2loc,s2)
-    s3=getTotalNodeData()
-    t3loc=Point(500,160)
-    t3=Text(t3loc,s3)
-    s4 = 'method iterations = ',methodIterations
-    t4 = Text(Point(500, 120), s4)
+    t2.setSize(11)
 
-    crp=Point(cx/scale,cy/scale)
+    s3=getTotalNodeData()
+    t3loc=Point(500,45)
+    t3=Text(t3loc,s3)
+    t3.setSize(11)
+
+    s4 = 'method iterations : '+str(methodIterations)
+    if(carpath!=None):
+        s4 = s4+' , recorded locations : '+str(len(carpath.path))
+    t4 = Text(Point(500, 75), s4)
+    t4.setSize(11)
 
     clear(win)
-    #ll.draw(win)
-    #rl.draw(win)
-    #v10.draw(win)
-    #v5.draw(win)
 
     if carpath!=None:
         dirLines = carpath.getOrientLines()
@@ -124,16 +109,6 @@ def render(dt):
             l.setFill("blue")
             l.draw(win)
 
-    '''for n in nearbyNodes:
-        nnc=Circle(n.p,4)
-        nnc.setFill("yellow")
-        nnc.draw(win)
-        if(nodes.__contains__(n)):
-            nnct=Text(Point(n.p.x+5,n.p.y+5),str(nodes.index(n)))
-            nnct.setSize(5)
-            nnct.setFill("blue")
-            nnct.draw(win)
-    '''
     for n in nodes:
         size=len(n.cn)
         rad=size/2.0+1
@@ -163,18 +138,18 @@ def render(dt):
         p1.setFill("green")
         p1.draw(win)
 
-    for dir in routedirs:
-        ldx=(25 * np.math.cos(dir))
-        ldy=(25 * np.math.sin(dir))
+    for dirdata in routedirs:
+        dir=dirdata[0]
+        confidence=dirdata[1]
+        confidenceMult=(confidence/3.0)
+        ldx=(25 * np.math.cos(dir) * confidenceMult)
+        ldy=(25 * np.math.sin(dir) * confidenceMult)
         linep1=Point(crp.x + ldx , crp.y + ldy )
         linep2=Point(crp.x - ldx , crp.y - ldy )
         line=Line(linep1,linep2)
         line.setArrow('both')
         line.setFill("green")
         line.draw(win)
-
-    if (carpath!=None):
-        t1.draw(win)
 
     t2.draw(win)
     t3.draw(win)
@@ -200,7 +175,7 @@ def setConnections():
 
 
 def findRoutes():
-    global nodes, orient, x,y,scale,lscale,nearbyNodes,subtimes,methodIterations,routedirs
+    global nodes, orient, x,y,scale,lscale,subtimes,methodIterations,routedirs
     st=time.time()
     nearbyNodes=[]
     car=Point(x/scale,y/scale)
@@ -240,7 +215,6 @@ def findRoutes():
                     walls.append(NodalFunc(n,n1))
             else:
                 walls.append(NodalFunc(n,n1))
-    #print ('there are '+str(len(walls))+' walls nearby')
 
     maxorientdif=3.14159/12
     directions=[]
@@ -277,7 +251,7 @@ def findRoutes():
     routedirs = []
     for d in directions:
         if (d[1]>3):
-            routedirs.append(d[0])
+            routedirs.append(d)
 
         #directions.append(w.orient)
 
@@ -285,7 +259,7 @@ def findRoutes():
 
 
     dt=time.time()-st
-    subtimes[5]=dt
+    subtimes[4]=dt
     print 'directions : ',directions
 #                    print (disttomidpoint)
     #print ('there are ',len(directions),' in a set of ',len(walls),' (found in ',round(dt,4),' sec)')
@@ -312,7 +286,7 @@ def scanWalls(data,dl,dr,df):
         if (rp1!=None):
             points.append(rp1)
 
-    subtimes[3]=round(time.time()-st,3)
+    subtimes[0]=round(time.time()-st,3)
     st=time.time()
 
 
@@ -324,7 +298,7 @@ def scanWalls(data,dl,dr,df):
 
     points=[]
     removeAbsentNodes()
-    subtimes[4]=round(time.time()-st,3)
+    subtimes[1]=round(time.time()-st,3)
     nodes = connectNodes(nodes)
 
     if (time.time() > lt + .5):
@@ -334,7 +308,7 @@ def scanWalls(data,dl,dr,df):
         cleanNodes(scanrange)
         findRoutes()
         updateCarState()
-        #findPPaths()
+        methodIterations[1]=methodIterations[1]+1
 
     methodIterations[0]=methodIterations[0]+1
     scantime = getSubTimes(subtimes)
@@ -351,13 +325,13 @@ def getSubTimes(subtimes):
     t=0
     for i in subtimes:
         t=t+i
-    percent=[]
+    percent=' [ '
     for i in subtimes:
         p=i/t
-        p=round(p,2)
-        percent.append(p)
-
-    return (round(t,4),percent)
+        p=round(p*100,1)
+        percent=percent+str(p)+'% '
+    percent=percent+']'
+    return str(round(t,4))+str(percent)
 
 
 def getClosestCarPath(n1,n2):
@@ -414,8 +388,8 @@ def findPPaths():
                             deltaOrient=wallTangent.getOrientDif(pathTangent)
                             if(abs(deltaOrient)>45):
                                 ppaths.append([n,n1])
-    subtimes[2]=round((time.time()-st),3)
-    methodIterations[1]=methodIterations[1]+1
+    subtimes[5]=round((time.time()-st),3)
+    methodIterations[2]=methodIterations[2]+1
 
 
 
@@ -737,7 +711,7 @@ def connectNodes(list):
             n.connectWithClosest(list,maxdist,0)
             #if(n.hasNoConnected()):
             #    list.remove(n)
-    subtimes[0]=round((time.time()-st),3)
+    subtimes[2]=round((time.time()-st),3)
     return list
 
 def connectVeryClose():
@@ -794,7 +768,7 @@ def cleanNodes(range=40):
     removeTwinNodes(range)
     resetLargeNodes(range)
     simplify(range)
-    subtimes[1]=round((time.time()-st),3)
+    subtimes[3]=round((time.time()-st),3)
 
 
 
@@ -808,8 +782,8 @@ def getTotalNodeData():
         nl=len(n.cn)
         if nl<7:
             nodelen[nl]=nodelen[nl]+1
-    str=leng,' nodes : 0-',nodelen[0],', 1-',nodelen[1],', 2-',nodelen[2],', 3-',nodelen[3],', 4-',nodelen[4],', 5-',nodelen[5],', 6-',nodelen[6]
-    return str
+    str1=str(leng)+' nodes, size distribution : 0-'+str(nodelen[0])+', 1-'+str(nodelen[1])+', 2-'+str(nodelen[2])+', 3-'+str(nodelen[3])+', 4-'+str(nodelen[4])+', 5-'+str(nodelen[5])+', 6-'+str(nodelen[6])
+    return str1
 
 
 def getAvgNodeNet():
