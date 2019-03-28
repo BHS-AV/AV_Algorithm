@@ -46,6 +46,7 @@ haslapped=0
 nearbyNodes=[]
 nearbyWalls=[]
 routedirs=[]
+dirIntersects=[]
 lastCarState=None
 
 class carState():
@@ -67,7 +68,7 @@ def update(dir):
     orient=d1
 
 def render(dt):
-    global win,front,c,x,y,orient, routedirs,oldLocs,points,allwalls,scantime,wall,carpath,wallpairs,lastCarState,ppaths,similarpos,methodIterations
+    global win,front,c,x,y,orient, routedirs,oldLocs,points,allwalls,dirIntersects,scantime,wall,carpath,wallpairs,lastCarState,ppaths,similarpos,methodIterations
     cx=x
     cy=y
     co=orient
@@ -139,8 +140,8 @@ def render(dt):
         p1.draw(win)
 
     for dirdata in routedirs:
-        dir=dirdata[0]
-        confidence=dirdata[1]
+        dir=dirdata.dir
+        confidence=dirdata.instances
         confidenceMult=(confidence/3.0)
         ldx=(25 * np.math.cos(dir) * confidenceMult)
         ldy=(25 * np.math.sin(dir) * confidenceMult)
@@ -150,6 +151,17 @@ def render(dt):
         line.setArrow('both')
         line.setFill("green")
         line.draw(win)
+        lineText=Text(linep1,dirdata.toString())
+        lineText.setFill('green')
+        lineText.draw(win)
+    for w in nearbyWalls:
+        wline=Line(w.n1.p,w.n2.p)
+        wline.setFill('red')
+        wline.draw(win)
+    for ip in dirIntersects:
+        circ=Circle(ip,5)
+        circ.setFill('red')
+        circ.draw(win)
 
     t2.draw(win)
     t3.draw(win)
@@ -158,20 +170,60 @@ def render(dt):
     c.draw(win)
     front.draw(win)
 
-def exportMap(loc):
-    global win
-    #win.save(loc)
+def scanWalls(data,dl,dr,df):
+    global orient,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes, scale, lscale,lastCarState, nodes, refbool, lastCorrection, haslapped
+    if (orient==0):return
+    samples=20
+    st=time.time()
+    scanrange=50
+    prange=len(nodes)*.8
+    if prange>scanrange:scanrange=prange
 
-def setConnections():
-    global connections, nodes
-    connections=[]
-    for n in nodes:
-        index=nodes.index(n)
-        for n1 in n.cn:
-            index1=nodes.index(n1)
-            if (index1>index):
-                connections.append(NodalConnection(n,n1))
+    if(haslapped):
+        samples=round(samples/3)
 
+    for i in range(samples):
+        lp1=getPoint(data,i*(115/samples)+5)
+        rp1=getPoint(data,240-(i*(115/samples)+5))
+        if (lp1!=None):
+            points.append(lp1)
+        if (rp1!=None):
+            points.append(rp1)
+
+    subtimes[0]=round(time.time()-st,3)
+    st=time.time()
+
+
+    mininitdist=.25*lscale/scale
+    for p in points:
+        n=Node(p)
+        if (distToClosestNode(n,40)>mininitdist):
+            nodes.append(n)
+
+    points=[]
+    removeAbsentNodes()
+    subtimes[1]=round(time.time()-st,3)
+    nodes = connectNodes(nodes)
+
+    if (time.time() > lt + .5):
+        updatePath(Point(x / scale, y / scale),dl,dr,df)
+        if(time.time()-lastCorrection>10):
+            getSimilarPos(dl,dr,df)
+        cleanNodes(scanrange)
+        updateCarState()
+        findRoutes()
+        methodIterations[1]=methodIterations[1]+1
+
+    methodIterations[0]=methodIterations[0]+1
+    scantime = getSubTimes(subtimes)
+
+
+def updateCarState():
+    global lastCarState,x,y,orient
+    if lastCarState==None:
+        lastCarState=carState(x,y,orient)
+    else:
+        lastCarState.update(x,y,orient)
 
 
 def findRoutes():
@@ -198,7 +250,7 @@ def findRoutes():
                 dori=nor-orient
                 if(abs(dori)<fov/2 or abs(dori-tau)<fov/2 or abs(dori+tau)<fov/2):
                     i=nodes.index(n)
-                    print('for node ',i,' dif between ur orient ', round(orient,2), ' and relative dir ', round(nor,2),' ('+str(round(dx,2))+','+str(round(dx,2))+') is ', round(dori,2))
+                    #print('for node ',i,' dif between ur orient ', round(orient,2), ' and relative dir ', round(nor,2),' ('+str(round(dx,2))+','+str(round(dx,2))+') is ', round(dori,2))
                     nearbyNodes.append(n)
 
     nearbyWalls=[]
@@ -247,76 +299,54 @@ def findRoutes():
     routedirs = []
     for d in directions:
         if (d[1]>3):
-            routedirs.append(d)
+            routedirs.append(directionalData(d))
 
+    checkDirIntersects(car.x, car.y)
     dt=time.time()-st
     subtimes[4]=dt
     #print 'directions : ',directions
 
 
-def scanWalls(data,dl,dr,df):
-    global orient,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes, scale, lscale,lastCarState, nodes, refbool, lastCorrection, haslapped
-    if (orient==0):return
-    samples=20
-    st=time.time()
-    scanrange=50
-    prange=len(nodes)*.8
-    if prange>scanrange:scanrange=prange
+class directionalData():
+    dir=0
+    instances=0
+    intersepts=[]
 
-    if(haslapped):
-        samples=round(samples/3)
+    def __init__(self, direction = [0,0]):
+        self.dir=direction[0]
+        self.instances=direction[1]
 
-    for i in range(samples):
-        lp1=getPoint(data,i*(115/samples)+5)
-        rp1=getPoint(data,240-(i*(115/samples)+5))
-        if (lp1!=None):
-            points.append(lp1)
-        if (rp1!=None):
-            points.append(rp1)
-
-    subtimes[0]=round(time.time()-st,3)
-    st=time.time()
+    def toString(self):
+        return 'dir ' + str(round(self.dir,4)) + ' (o=' + str(round((self.dir*180.0/3.14159),2)) + ') has ' + str(len(self.intersepts)) + ' intersections'
 
 
-    mininitdist=.25*lscale/scale
-    for p in points:
-        n=Node(p)
-        if (distToClosestNode(n,40)>mininitdist):
-            nodes.append(n)
-
-    points=[]
-    removeAbsentNodes()
-    subtimes[1]=round(time.time()-st,3)
-    nodes = connectNodes(nodes)
-
-    if (time.time() > lt + .5):
-        updatePath(Point(x / scale, y / scale),dl,dr,df)
-        if(time.time()-lastCorrection>10):
-            getSimilarPos(dl,dr,df)
-        cleanNodes(scanrange)
-        findRoutes()
-        updateCarState()
-        methodIterations[1]=methodIterations[1]+1
-
-    methodIterations[0]=methodIterations[0]+1
-    scantime = getSubTimes(subtimes)
+def checkDirIntersects(carx,cary):
+    global dirIntersects, routedirs
+    dirIntersects=[]
+    for d in routedirs:
+        intersects=intersectsInDirFromCar(d.dir,carx,cary)
+        for i in intersects:
+            dirIntersects.append(i)
+            d.intersepts.append(i)
 
 
-def updateCarState():
-    global lastCarState,x,y,orient
-    if lastCarState==None:
-        lastCarState=carState(x,y,orient)
-    else:
-        lastCarState.update(x,y,orient)
 
-def approxDistInDirFromCar(dir):
+def intersectsInDirFromCar(dir,crx,cry):
     global nearbyWalls, nearbyNodes
     mx=np.math.tan(dir)
+    b=cry-(mx*crx)
+    intersects=[]
+    for w in nearbyWalls:
+        p=getLineWallIntersection(mx,b,w)
+        if(p[0]>w.getMinMax(True, False) and p[0]<w.getMinMax(True, True)):
+            if (p[1] > w.getMinMax(False, False) and p[1] < w.getMinMax(False, True)):
+                intersects.append(Point(p[0],p[1]))
+    return intersects
     #TODO MAKE THIS METHOD AND IMPLEMENT IT
 
-def getLineWallIntersection(min,max,m2,b2,wall):
+def getLineWallIntersection(m2,b2,wall):
     m1 = (wall.n1.p.x - wall.n2.p.x) / ((wall.n1.p.y - wall.n2.p.y) + .000001)
-    b1 = wall.n1.p.x - (m1 * wall.n1.p.x)
+    b1 = wall.n1.p.y - (m1 * wall.n1.p.x)
     x = (b2 - b1) / (m1 - m2)
     y = (x * m1) + b1
     return [x,y]
@@ -432,6 +462,16 @@ def distToClosestNode(n1, range):
 
 def removeImpossibleConnections(rangepercent):
     global nodes, oldlocs
+
+def setConnections():
+    global connections, nodes
+    connections=[]
+    for n in nodes:
+        index=nodes.index(n)
+        for n1 in n.cn:
+            index1=nodes.index(n1)
+            if (index1>index):
+                connections.append(NodalConnection(n,n1))
 
 
 def isDuplicateNode(n1,range):
@@ -1228,6 +1268,18 @@ class NodalFunc():
         dx = x - x1
         dy = y - y1
         return np.sqrt(dx * dx + dy * dy)
+
+    def getMinMax(self,isX,isMax):
+        if isX:
+            if isMax:
+                return self.n1.p.x if(self.n1.p.x>self.n2.p.x) else self.n2.p.x
+            else:
+                return self.n1.p.x if(self.n1.p.x<self.n2.p.x) else self.n2.p.x
+        else:
+            if isMax:
+                return self.n1.p.y if(self.n1.p.y>self.n2.p.y) else self.n2.p.y
+            else:
+                return self.n1.p.y if(self.n1.p.y<self.n2.p.y) else self.n2.p.y
 
 
 class PointLine():
