@@ -120,7 +120,6 @@ def render(dt):
         elif size==1:
             p2=Circle(n.p,4)
             p2.setFill("orange")
-
         else:
             p2.setFill("red")
 
@@ -315,7 +314,12 @@ def approxDistInDirFromCar(dir):
     mx=np.math.tan(dir)
     #TODO MAKE THIS METHOD AND IMPLEMENT IT
 
-
+def getLineWallIntersection(min,max,m2,b2,wall):
+    m1 = (wall.n1.p.x - wall.n2.p.x) / ((wall.n1.p.y - wall.n2.p.y) + .000001)
+    b1 = wall.n1.p.x - (m1 * wall.n1.p.x)
+    x = (b2 - b1) / (m1 - m2)
+    y = (x * m1) + b1
+    return [x,y]
 
 def getSubTimes(subtimes):
     t=0
@@ -607,6 +611,7 @@ def getIntersectPoint(l1,l2):
     x = (b2 - b1) / (m1 - m2)
     y = (x*m1)+b1
     return Point(x,y)
+
 
 def avgPoints():
     i=0
@@ -1338,6 +1343,8 @@ class LineFunc():
         if (dor<dor1):
             return dor
         return dor1
+
+
 
     def isLineSim(self, l1, maxDistDif, maxOrientDif):
         func=LineFunc(l1)
