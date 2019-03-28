@@ -43,7 +43,8 @@ methodIterations=[0,0,0]
 
 lastCorrection=time.time()
 haslapped=0
-
+nearbyNodes=[]
+nearbyWalls=[]
 routedirs=[]
 lastCarState=None
 
@@ -175,7 +176,7 @@ def setConnections():
 
 
 def findRoutes():
-    global nodes, orient, x,y,scale,lscale,subtimes,methodIterations,routedirs
+    global nodes, orient, x,y,scale,lscale,subtimes,methodIterations,routedirs,nearbyWalls,nearbyNodes
     st=time.time()
     nearbyNodes=[]
     car=Point(x/scale,y/scale)
@@ -201,24 +202,20 @@ def findRoutes():
                     print('for node ',i,' dif between ur orient ', round(orient,2), ' and relative dir ', round(nor,2),' ('+str(round(dx,2))+','+str(round(dx,2))+') is ', round(dori,2))
                     nearbyNodes.append(n)
 
-                #nearbynodes.append(n)
-
-
-
-    walls=[]
+    nearbyWalls=[]
     for n in nearbyNodes:
         i=nearbyNodes.index(n)
         for n1 in n.cn:
             if(nearbyNodes.__contains__(n1)):
                 i1=nearbyNodes.index(n1)
                 if(i1>i):
-                    walls.append(NodalFunc(n,n1))
+                    nearbyWalls.append(NodalFunc(n,n1))
             else:
-                walls.append(NodalFunc(n,n1))
+                nearbyWalls.append(NodalFunc(n,n1))
 
     maxorientdif=3.14159/12
     directions=[]
-    for w in walls:
+    for w in nearbyWalls:
         dir=w.orient
         isNew=True
         mostsimilarindex=-1
@@ -253,17 +250,9 @@ def findRoutes():
         if (d[1]>3):
             routedirs.append(d)
 
-        #directions.append(w.orient)
-
-
-
-
     dt=time.time()-st
     subtimes[4]=dt
-    print 'directions : ',directions
-#                    print (disttomidpoint)
-    #print ('there are ',len(directions),' in a set of ',len(walls),' (found in ',round(dt,4),' sec)')
-
+    #print 'directions : ',directions
 
 
 def scanWalls(data,dl,dr,df):
@@ -320,6 +309,13 @@ def updateCarState():
         lastCarState=carState(x,y,orient)
     else:
         lastCarState.update(x,y,orient)
+
+def approxDistInDirFromCar(dir):
+    global nearbyWalls, nearbyNodes
+    mx=np.math.tan(dir)
+    #TODO MAKE THIS METHOD AND IMPLEMENT IT
+
+
 
 def getSubTimes(subtimes):
     t=0
