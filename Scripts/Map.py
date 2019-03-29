@@ -143,17 +143,18 @@ def render(dt):
         dir=dirdata.dir
         confidence=dirdata.instances
         confidenceMult=(confidence/3.0)
-        ldx=(25 * np.math.cos(dir) * confidenceMult)
-        ldy=(25 * np.math.sin(dir) * confidenceMult)
+        ldx=(40 * np.math.cos(dir) * confidenceMult)
+        ldy=(40 * np.math.sin(dir) * confidenceMult)
         linep1=Point(crp.x + ldx , crp.y + ldy )
         linep2=Point(crp.x - ldx , crp.y - ldy )
         line=Line(linep1,linep2)
         line.setArrow('both')
         line.setFill("green")
         line.draw(win)
-        lineText=Text(linep1,dirdata.toString())
+        '''lineText=Text(linep1,dirdata.toString())
         lineText.setFill('green')
-        lineText.draw(win)
+        lineText.setSize(6)
+        lineText.draw(win)'''
     for w in nearbyWalls:
         wline=Line(w.n1.p,w.n2.p)
         wline.setFill('red')
@@ -238,6 +239,8 @@ def findRoutes():
     left = orient + (fov / 2)
     tau=3.14159*2
 
+    #st1=time.time()
+
     for n in nodes:
         dx=n.p.x-car.x
         if(abs(dx)<maxdist):
@@ -252,7 +255,8 @@ def findRoutes():
                     i=nodes.index(n)
                     #print('for node ',i,' dif between ur orient ', round(orient,2), ' and relative dir ', round(nor,2),' ('+str(round(dx,2))+','+str(round(dx,2))+') is ', round(dori,2))
                     nearbyNodes.append(n)
-
+    #nodetime=time.time()-st1
+    #st1=time.time()
     nearbyWalls=[]
     for n in nearbyNodes:
         i=nearbyNodes.index(n)
@@ -264,14 +268,20 @@ def findRoutes():
             else:
                 nearbyWalls.append(NodalFunc(n,n1))
 
-    maxorientdif=3.14159/12
+    #walltime=time.time()-st1
+
+    #print 'nearby nodes : '+str(len(nearbyNodes))+"/"+str(len(nodes))+" || nearby walls : "+str(len(nearbyWalls))
+    #print 'percent nodes : '+str(100.0*(nodetime/(nodetime+walltime)))
+
+    maxorientdif=3.14159/18
     directions=[]
+    standardWallLength=1.5*lscale/scale
     for w in nearbyWalls:
         dir=w.orient
         isNew=True
         mostsimilarindex=-1
         highestsim=1000
-
+        lengthMult = w.getLength()/standardWallLength
         for d in directions:
             dir1=d[0]
             dirdif=abs(dir1-dir)
@@ -292,8 +302,8 @@ def findRoutes():
             d1 = dir
             if (abs(dir + 3.14 - dir1) < abs(d1 - dir1)): d1 = dir + 3.14159
             if (abs(dir - 3.14 - dir1) < abs(d1 - dir1)): d1 = dir - 3.14159
-            directions[mostsimilarindex][0] = directions[mostsimilarindex][1] * directions[mostsimilarindex][0] + d1
-            directions[mostsimilarindex][1] = directions[mostsimilarindex][1] + 1
+            directions[mostsimilarindex][0] = directions[mostsimilarindex][1] * directions[mostsimilarindex][0] + (d1*lengthMult)
+            directions[mostsimilarindex][1] = directions[mostsimilarindex][1] + lengthMult
             directions[mostsimilarindex][0] = directions[mostsimilarindex][0] / directions[mostsimilarindex][1]
 
     routedirs = []
@@ -310,14 +320,15 @@ def findRoutes():
 class directionalData():
     dir=0
     instances=0
-    intersepts=[]
+    intercepts=[]
 
     def __init__(self, direction = [0,0]):
         self.dir=direction[0]
+        self.intercepts=[]
         self.instances=direction[1]
 
     def toString(self):
-        return 'dir ' + str(round(self.dir,4)) + ' (o=' + str(round((self.dir*180.0/3.14159),2)) + ') has ' + str(len(self.intersepts)) + ' intersections'
+        return 'dir ' + str(round(self.dir,4)) + ' (o=' + str(round((self.dir*180.0/3.14159),2)) + ') \n has ' + str(len(self.intercepts)) + ' intersections and '+str(self.instances)+" instances "
 
 
 def checkDirIntersects(carx,cary):
@@ -327,7 +338,7 @@ def checkDirIntersects(carx,cary):
         intersects=intersectsInDirFromCar(d.dir,carx,cary)
         for i in intersects:
             dirIntersects.append(i)
-            d.intersepts.append(i)
+            d.intercepts.append(i)
 
 
 
@@ -342,13 +353,16 @@ def intersectsInDirFromCar(dir,crx,cry):
             if (p[1] > w.getMinMax(False, False) and p[1] < w.getMinMax(False, True)):
                 intersects.append(Point(p[0],p[1]))
     return intersects
-    #TODO MAKE THIS METHOD AND IMPLEMENT IT
 
-def getLineWallIntersection(m2,b2,wall):
-    m1 = (wall.n1.p.x - wall.n2.p.x) / ((wall.n1.p.y - wall.n2.p.y) + .000001)
-    b1 = wall.n1.p.y - (m1 * wall.n1.p.x)
-    x = (b2 - b1) / (m1 - m2)
-    y = (x * m1) + b1
+def getLineWallIntersection(m,b,wall):
+    wm1 = (wall.n1.p.y - wall.n2.p.y) / ((wall.n1.p.x - wall.n2.p.x) + .000001)
+    wb1 = wall.n1.p.y - (wm1 * wall.n1.p.x)
+    x = (b - wb1) / (wm1 - m)
+    y = (x * wm1) + wb1
+    #solve using inverse: x=my+b
+    #wm2 = (wall.n1.p.x - wall.n2.p.x) / ((wall.n1.p.y - wall.n2.p.y) + .000001)
+
+
     return [x,y]
 
 def getSubTimes(subtimes):
@@ -1035,11 +1049,15 @@ class Node():
     data=None
     dir=0
     cn=[]
+    iterationOfCreation=0
+
     def __init__(self,p1):
+        global methodIterations
         #global scale, lscale,nodes
         #maxInit=.5*lscale/scale
         self.p=p1
         self.cn=[]
+        self.iterationOfCreation=methodIterations[0]
         #self.connectWithClosest(nodes,maxInit)
 
 
@@ -1239,6 +1257,11 @@ class NodalFunc():
 
     def f(self, x):
         return (self.m * x) + self.b
+
+    def getLength(self):
+        dx=self.n1.p.x-self.n2.p.x
+        dy=self.n1.p.y-self.n2.p.y
+        return np.math.sqrt(dx*dx+dy*dy)
 
     def getOrientDif(self, nfunc):
         o1 = np.rad2deg(self.orient) + 90
