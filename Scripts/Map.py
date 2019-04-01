@@ -35,10 +35,10 @@ connections=[]
 similarpos=[]
 fov=3.14159*4.0/3.0
 
-subtimes=[0,0,0,0,0,0]
+subtimes=[0,0,0,0,0,0,0]
 #                       WHAT ARE THE SUBTIMES?
 # 0 - scanning , 1 - cleaning data , 2 - connecting
-# 3 - cleaning , 4  - routing      , 5 - locating exits
+# 3 - cleaning , 4  - routing      , 5 - locating exits, 6 - archival
 methodIterations=[0,0,0]
 # 0 - scan/update , 1 - cleaning methods , 2 - locating exits
 
@@ -49,6 +49,10 @@ nearbyWalls=[]
 routedirs=[]
 dirIntersects=[]
 lastCarState=None
+
+goal=None
+timeOfLastLoop=0
+loops=0
 
 def update(dir):
     global win,front,c,x,y,orient, oldLocs
@@ -83,10 +87,10 @@ def render(dt):
 
     s4 = 'method iterations : '+str(methodIterations)
     if(carpath!=None):
-        s4 = s4+' , recorded locations : '+str(len(carpath.path))
+        s4 = s4+' , recorded locations : '+str(len(carpath.path))+" , loops : "+str(loops)
     t4 = Text(Point(500, 75), s4)
     t4.setSize(11)
-    s5='player pos : '+str(x)+', '+str(y)
+
 
     clear(win)
 
@@ -212,6 +216,7 @@ def scanWalls(data,dl,dr,df):
         cleanNodes(scanrange)
         updateCarState()
         findRoutes()
+        hasLooped()
         methodIterations[1]=methodIterations[1]+1
 
     methodIterations[0]=methodIterations[0]+1
@@ -224,6 +229,22 @@ def updateCarState():
         lastCarState=carState(x,y,orient)
     else:
         lastCarState.update(x,y,orient)
+
+
+def hasLooped():
+    global carpath,methodIterations,x,y,scale,lscale, timeOfLastLoop,loops
+    car=Point(x/scale,y/scale)
+    maxdist=2.0*lscale/scale
+    if(time.time()-timeOfLastLoop>5):
+        firstPos=carpath.path[0]
+        dx=car.x-firstPos.p.x
+        dy=car.y-firstPos.p.y
+        dist=np.math.sqrt(dx*dx+dy*dy)
+        #print 'start = ',firstPos.p,' now = ',car
+        #print 'dist = '+str(dist)+" of "+str(maxdist)
+        if(maxdist>dist):
+            timeOfLastLoop = time.time()
+            loops += 1
 
 
 def findRoutes():
@@ -438,9 +459,10 @@ def findPPaths():
 
 
 def updatePath(pos,dl,dr,df):
-    global carpath
+    global carpath,timeOfLastLoop
     distdata=[dl,dr,df]
     if carpath==None:
+        timeOfLastLoop=time.time()
         carpath=Path(pos,distdata)
     else:
         carpath.addPos(pos,distdata)
@@ -827,15 +849,19 @@ def cleanNodes(range=40):
     subtimes[3]=round((time.time()-st),3)
 
 def archiveOldNodes():
-    global nodes, oldNodes, methodIterations
+    global nodes, oldNodes, methodIterations,subtimes
+    st=time.time()
     for n in nodes:
         if(methodIterations[0]-n.iterationOfCreation>25):
-            oldNodes.append(n)
-            nodes.remove(n)
-
+            newest=n.getNewestInNetwork()
+            if(methodIterations[0]-newest.iterationOfCreation>25):
+                #oldNodes.append(n)
+                n.archive()
+                #nodes.remove(n)
+    subtimes[6]=time.time()-st
 
 def getTotalNodeData():
-    global nodes
+    global nodes,oldNodes
     leng=len(nodes)
     avgsize=getAvgNodeNet()
     nodelen=[0,0,0,0,0,0,0]
@@ -843,7 +869,11 @@ def getTotalNodeData():
         nl=len(n.cn)
         if nl<7:
             nodelen[nl]=nodelen[nl]+1
-    str1=str(leng)+' nodes, size distribution : 0-'+str(nodelen[0])+', 1-'+str(nodelen[1])+', 2-'+str(nodelen[2])+', 3-'+str(nodelen[3])+', 4-'+str(nodelen[4])+', 5-'+str(nodelen[5])+', 6-'+str(nodelen[6])
+    for n in oldNodes:
+        nl=len(n.cn)
+        if nl<7:
+            nodelen[nl]=nodelen[nl]+1
+    str1=str(leng)+'-'+str(len(oldNodes))+' nodes, size distribution : 0-'+str(nodelen[0])+', 1-'+str(nodelen[1])+', 2-'+str(nodelen[2])+', 3-'+str(nodelen[3])+', 4-'+str(nodelen[4])+', 5-'+str(nodelen[5])+', 6-'+str(nodelen[6])
     return str1
 
 
@@ -1106,6 +1136,33 @@ class Node():
                         if not self.cn.__contains__(node):
                             self.cn.append(node)
 
+#    def getNewestConnected(self):
+#        for n in n.cn
+    def getNetwork(self, clist=[]):
+        if(not clist.__contains__(self)):
+            clist.append(self)
+            for n in self.cn:
+                clist=n.getNetwork(clist)
+        return clist
+
+    def getNewestInNetwork(self):
+        net=self.getNetwork()
+        newest=None
+        for n in net:
+            if(newest==None):
+                newest=n
+            else:
+                if(newest.iterationOfCreation<n.iterationOfCreation):
+                    newest=n
+        return n
+
+    def archive(self):
+        global nodes, oldNodes
+        if(nodes.__contains__(self)):
+            nodes.remove(self)
+            oldNodes.append(self)
+            for n in self.cn:
+                n.archive()
 
     def removeDuplicateCN(self):
         ncn=[]

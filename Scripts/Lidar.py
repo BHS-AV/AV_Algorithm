@@ -14,7 +14,9 @@ hold=0 # 0 = normal , 1 = right , -1 = left
 lastPathFind=time.time()
 lastturn=0
 turn=0
+turnStart=0
 navMode=0 # 0 = standard ; 1 = reversing
+orient=0
 
 def get_data_array(data, a=0, b=240):
     PPD = 4.5  # points per degree
@@ -35,7 +37,7 @@ def print_data(data):
     # GLOBAL VARIABLES
     global reversing
     global maxSpeed
-    global hold,lt,lastPathFind,lastturn,turn,navMode
+    global hold,lt,lastPathFind,lastturn,turn,navMode,turnStart,orient
 
 
 
@@ -61,7 +63,7 @@ def print_data(data):
 
     #MAPPING
     m.update(nav.getOrient())
-    if (rospy.get_time() > lt + .8):
+    if (rospy.get_time() > lt + .5):
         lt = rospy.get_time()
         m.scanWalls(data.ranges,distLeft,distRight,distFront)
 
@@ -84,7 +86,7 @@ def print_data(data):
 
     # DEFAULT MOVEMENT
     x = 1
-    turn = (distRight / (distLeft + distRight)) * 2.0 - 1
+    #turn = (distRight / (distLeft + distRight)) * 2.0 - 1
 
     turn = -turn
     speed = limit_speed(((((distRight + distLeft) / 4.0) + distFront) / 1.25) * maxSpeed, maxSpeed)
@@ -95,28 +97,38 @@ def print_data(data):
     yorient = nav.getYOrient() * 180 / 3.14159
 
     if navMode==0:  # STANDARD CONTROLS
-        standardControls(distRight,distLeft,speed,dataFront,distFront)
+        #standardControls(distRight,distLeft,speed,dataFront,distFront)
+        turn=0
+        if(distFront<2):
+            #print 'turn around!'
+            turnStart=orient
+            navMode=1
+    else:
+        turnAround()
 
+    '''elif reversing != 0:  # REVERSING
 
-    elif reversing != 0:  # REVERSING
+    # CHECK TO SEE IF RUNNING INTO SOMETHING
+    if xorient > 10 or yorient > 10:
+        reversing = 0
 
-        # CHECK TO SEE IF RUNNING INTO SOMETHING
-        if xorient > 10 or yorient > 10:
-            reversing = 0
+    # BASIC REVERSING
+    turn = reversing
+    x = -1
+    speed = speed / 4
 
-        # BASIC REVERSING
-        turn = reversing
-        x = -1
-        speed = speed / 4
-
-        # CHECKS TO SEE IF STILL NEED TO TURN
-        if (needsToReverse(dataFront, distFront, 2) == 0):
-            reversing = 0
+    # CHECKS TO SEE IF STILL NEED TO TURN
+    if (needsToReverse(dataFront, distFront, 2) == 0):
+        reversing = 0'''
 
     lastturn=turn
     Controls.move(x, turn, speed)
 
-
+def turnAround():
+    global turn,orient,turnStart,navMode
+    turn=1
+    if(abs(turnStart-orient)-180<10 or abs(turnStart-orient-360)-180<10 or abs(turnStart-orient+360)<10):
+        navMode=0
 
 def standardControls(distRight,distLeft,speed,dataFront,distFront):
     global turn,lastPathFind,reversing
