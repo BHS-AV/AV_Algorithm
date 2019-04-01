@@ -33,6 +33,10 @@ def needsToReverse(dataFront, distFront, range=1):
 def getOrient():
     return nav.getOrient()
 
+def setUTurn():
+    global navMode
+    navMode=1
+
 def print_data(data):
     # GLOBAL VARIABLES
     global reversing

@@ -1,5 +1,6 @@
 import numpy as np
 import itertools
+#import Lidar as lid
 from graphics import *
 
 height=1000
@@ -53,6 +54,7 @@ lastCarState=None
 goal=None
 timeOfLastLoop=0
 loops=0
+shouldUTurn=False
 
 def update(dir):
     global win,front,c,x,y,orient, oldLocs
@@ -231,8 +233,15 @@ def updateCarState():
         lastCarState.update(x,y,orient)
 
 
+def shouldUTurnNow():
+    global shouldUTurn
+    if shouldUTurn:
+        shouldUTurn=False
+        return True
+    return False
+
 def hasLooped():
-    global carpath,methodIterations,x,y,scale,lscale, timeOfLastLoop,loops
+    global carpath,methodIterations,x,y,scale,lscale, timeOfLastLoop,loops,shouldUTurn
     car=Point(x/scale,y/scale)
     maxdist=2.0*lscale/scale
     if(time.time()-timeOfLastLoop>5):
@@ -244,7 +253,10 @@ def hasLooped():
         #print 'dist = '+str(dist)+" of "+str(maxdist)
         if(maxdist>dist):
             timeOfLastLoop = time.time()
+            #lid.setUTurn()
             loops += 1
+            if(loops==1):
+                shouldUTurn=True
 
 
 def findRoutes():
