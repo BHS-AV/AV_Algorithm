@@ -4,8 +4,6 @@ import numpy as np
 import Navigation as nav
 import Map as m
 import time
-from nav_msgs.msg import Odometry as odom
-from sensor_msgs.msg import LaserScan
 
 reversing = 0
 maxSpeed = 3
@@ -15,6 +13,8 @@ destDir = 1 # 0 = north , 90 = east , 180 = south , 270 = west
 hold=0 # 0 = normal , 1 = right , -1 = left
 lastPathFind=time.time()
 lastturn=0
+turn=0
+navMode=0 # 0 = standard ; 1 = reversing
 
 def get_data_array(data, a=0, b=240):
     PPD = 4.5  # points per degree
@@ -35,7 +35,7 @@ def print_data(data):
     # GLOBAL VARIABLES
     global reversing
     global maxSpeed
-    global hold,lt,lastPathFind,lastturn
+    global hold,lt,lastPathFind,lastturn,turn,navMode
 
 
 
@@ -71,8 +71,6 @@ def print_data(data):
     relDestDir = destDir - orient
 
     # WALL ANGLES
-    #rAng = getRelativeWallsOrient(data, 30, 60)
-    #lAng = getRelativeWallsOrient(data, 210, 240)
     a1=20
     a2=40
     rAng = getRelativeWallsOrient(data, a1, a2, 1)-60-a1
@@ -87,68 +85,18 @@ def print_data(data):
     # DEFAULT MOVEMENT
     x = 1
     turn = (distRight / (distLeft + distRight)) * 2.0 - 1
-    #if (straightness<20):
-    #    turn = (turn + ((rAng+lAng)/2))/2
 
     turn = -turn
     speed = limit_speed(((((distRight + distLeft) / 4.0) + distFront) / 1.25) * maxSpeed, maxSpeed)
 
+    turn=limitTurn(turn)
 
+    xorient = nav.getXOrient() * 180 / 3.14158
+    yorient = nav.getYOrient() * 180 / 3.14159
 
+    if navMode==0:  # STANDARD CONTROLS
+        standardControls(distRight,distLeft,speed,dataFront,distFront)
 
-    ttt=0
-    if (hold!=0 and straightness>5):
-        #print (len(rOpenings)," openings to the right, and ", len(lOpenings)," to the left")
-        if hold==1:
-            '''if (isOpeningBetween(data, 45, 135)):
-                turn=distRight/2
-                if (turn>1):
-                    turn=1
-                turn=-turn
-                print("holding right")
-                ttt=1'''
-            turn=rAng/30
-            ttt=1
-        else:
-            turn = lAng / 30
-            ttt=1
-
-    if (turn > 1):
-        turn = 1
-    elif (turn < -1):
-        turn = -1
-
-    '''
-    if (abs(turn)>.3):
-        speed = speed * (1.2 - abs(turn))
-    '''
-    '''
-    if (straightness > 25):
-        speed /= 1.5
-    elif (straightness < 1):
-        speed *= 1.5
-    '''
-
-    xorient = nav.getXOrient() * 180 / 3.14
-    yorient = nav.getYOrient() * 180 / 3.14
-
-    if reversing == 0:  # STANDARD CONTROLS
-
-        # BASIC LOW-LEVEL TURNING
-        if (abs(distRight - distLeft) < (distRight + distLeft) / 4 and ttt==0):
-            turn = turn * ((maxSpeed - speed) / maxSpeed)
-
-        if(abs(turn)<.2):
-            if(time.time()-lastPathFind>4):
-                m.findPPaths()
-                lastPathFind=time.time()
-
-
-        # CRASH IMINENT OVERRIDE
-        if (needsToReverse(dataFront, distFront) > 0):
-            reversing = 1
-            if (distLeft > distRight):
-                reversing = -reversing
 
     elif reversing != 0:  # REVERSING
 
@@ -165,21 +113,32 @@ def print_data(data):
         if (needsToReverse(dataFront, distFront, 2) == 0):
             reversing = 0
 
-    '''
-    #m.update(nav.getOrient)
-    print ("")
-    print ("openings to right: ",rOpenings,".")
-    print ("wall angle right = ", int(round(rAng)))
-    print ("wall angle left = ", int(round(lAng)))
-    print ("orient = ", int(round(360-orient)), " (",int(round(orient)),")")
-    print ("straighness = ", (int(round(straightness*100))/100.0))
-    print ("reversing = ", reversing)
-    print ("turning ",(int(round(turn*100))/100.0), " and moving ", x, " at a speed of ", (int(round(speed*100))/100.0))
-    print ("left ", (int(round(distLeft*100))/100.0), " forward ", (int(round(distFront*100))/100.0), " right ", (int(round(distRight*100))/100.0))
-    #print ("dtime =", dt)
-    print ("")'''
     lastturn=turn
     Controls.move(x, turn, speed)
+
+
+
+def standardControls(distRight,distLeft,speed,dataFront,distFront):
+    global turn,lastPathFind,reversing
+    if (abs(distRight - distLeft) < (distRight + distLeft) / 4):
+        turn = turn * ((maxSpeed - speed) / maxSpeed)
+
+    if (abs(turn) < .2):
+        if (time.time() - lastPathFind > 4):
+            lastPathFind = time.time()
+            m.findPPaths()
+
+    if (needsToReverse(dataFront, distFront) > 0):
+        reversing = 1
+        if (distLeft > distRight):
+            reversing = -reversing
+
+
+def limitTurn(turn):
+    if(abs(turn)<1):
+        return turn
+    else:
+        return 1 if turn>0 else -1
 
 def isGoingStraight():
     return abs(lastturn)<.1

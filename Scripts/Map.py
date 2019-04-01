@@ -50,19 +50,6 @@ routedirs=[]
 dirIntersects=[]
 lastCarState=None
 
-class carState():
-    x=0
-    y=0
-    orient=0
-    def __init__(self, x,y,orient):
-        self.x=x
-        self.y=y
-        self.orient=orient
-    def update(self, x,y,orient):
-        self.x=x
-        self.y=y
-        self.orient=orient
-
 def update(dir):
     global win,front,c,x,y,orient, oldLocs
     d1=dir/180.0*3.14
@@ -99,6 +86,7 @@ def render(dt):
         s4 = s4+' , recorded locations : '+str(len(carpath.path))
     t4 = Text(Point(500, 75), s4)
     t4.setSize(11)
+    s5='player pos : '+str(x)+', '+str(y)
 
     clear(win)
 
@@ -1019,6 +1007,18 @@ def getDirFromN1toN2(n1,n2):
     if(dx<0):orient=orient+180
     return orient
 
+class carState():
+    x=0
+    y=0
+    orient=0
+    def __init__(self, x,y,orient):
+        self.x=x
+        self.y=y
+        self.orient=orient
+    def update(self, x,y,orient):
+        self.x=x
+        self.y=y
+        self.orient=orient
 
 class Path():
     path=[]
