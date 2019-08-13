@@ -90,7 +90,7 @@ def print_data(data):
 
     # DEFAULT MOVEMENT
     x = 1
-    #turn = (distRight / (distLeft + distRight)) * 2.0 - 1
+    turn = (distRight / (distLeft + distRight)) * 2.0 - 1
 
     turn = -turn
     speed = limit_speed(((((distRight + distLeft) / 4.0) + distFront) / 1.25) * maxSpeed, maxSpeed)
@@ -102,13 +102,15 @@ def print_data(data):
 
     if navMode==0:  # STANDARD CONTROLS
         #standardControls(distRight,distLeft,speed,dataFront,distFront)
-        turn=0
-        if(distFront<2):
+        #turn=0
+        '''if(distFront<2):
             #print 'turn around!'
             turnStart=orient
-            navMode=1
+            navMode=1'''
     else:
         turnAround()
+
+    print('navmode ',navMode," | dist  (",round(distLeft,1), round(distFront,1) ,round(distRight,1)," | turn ",round(turn,1))
 
     '''elif reversing != 0:  # REVERSING
 
@@ -136,7 +138,7 @@ def turnAround():
 
 def standardControls(distRight,distLeft,speed,dataFront,distFront):
     global turn,lastPathFind,reversing
-    if (abs(distRight - distLeft) < (distRight + distLeft) / 4):
+    if (abs(distRight - distLeft) < (distRight + distLeft) / 8):
         turn = turn * ((maxSpeed - speed) / maxSpeed)
 
     if (abs(turn) < .2):
