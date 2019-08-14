@@ -1,6 +1,6 @@
 import numpy as np
 import itertools
-#import Lidar as lid
+import Lidar as lid
 from graphics import *
 
 height=1000
@@ -178,7 +178,7 @@ def render(dt):
     c.draw(win)
     front.draw(win)
 
-def scanWalls(data,dl,dr,df):
+def scanWalls(data,dl,dr,df, datastring):
     global orient,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes, scale, lscale,lastCarState, nodes, refbool, lastCorrection, haslapped
     if (orient==0):return
     samples=25
@@ -208,6 +208,16 @@ def scanWalls(data,dl,dr,df):
         if (distToClosestNode(n,40)>mininitdist):
             nodes.append(n)
 
+    #findPPaths()
+    findRoutes()
+    if(len(routedirs)>1):
+        print("multiple routes")
+        #lid.stop()
+    datastring=datastring," | routes : "
+
+    for dirdata in routedirs:
+        datastring=datastring, round(dirdata.dir,2)
+    print (datastring)
     points=[]
     removeAbsentNodes()
     subtimes[1]=round(time.time()-st,3)
@@ -219,7 +229,7 @@ def scanWalls(data,dl,dr,df):
             getSimilarPos(dl,dr,df)
         cleanNodes(scanrange)
         updateCarState()
-        findRoutes()
+        #findRoutes()
         hasLooped()
         methodIterations[1]=methodIterations[1]+1
 

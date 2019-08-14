@@ -17,6 +17,9 @@ turn=0
 turnStart=0
 navMode=0 # 0 = standard ; 1 = reversing
 orient=0
+dataString=""
+speed=0
+x=0
 
 def get_data_array(data, a=0, b=240):
     PPD = 4.5  # points per degree
@@ -41,7 +44,7 @@ def print_data(data):
     # GLOBAL VARIABLES
     global reversing
     global maxSpeed
-    global hold,lt,lastPathFind,lastturn,turn,navMode,turnStart,orient
+    global hold,lt,lastPathFind,lastturn,turn,navMode,turnStart,orient,dataString,speed,x
 
 
 
@@ -69,7 +72,7 @@ def print_data(data):
     m.update(nav.getOrient())
     if (rospy.get_time() > lt + .5):
         lt = rospy.get_time()
-        m.scanWalls(data.ranges,distLeft,distRight,distFront)
+        m.scanWalls(data.ranges,distLeft,distRight,distFront,dataString)
 
 
     # ORIENTATION
@@ -89,28 +92,24 @@ def print_data(data):
     lOpenings = scanOpenings(data, 155, 265)
 
     # DEFAULT MOVEMENT
-    x = 1
-    turn = (distRight / (distLeft + distRight)) * 2.0 - 1
 
-    turn = -turn
-    speed = limit_speed(((((distRight + distLeft) / 4.0) + distFront) / 1.25) * maxSpeed, maxSpeed)
-
-    turn=limitTurn(turn)
 
     xorient = nav.getXOrient() * 180 / 3.14158
     yorient = nav.getYOrient() * 180 / 3.14159
 
     if navMode==0:  # STANDARD CONTROLS
-        #standardControls(distRight,distLeft,speed,dataFront,distFront)
+        #kiojdio=2
+        standardControls(distRight,distLeft,dataFront,distFront)
         #turn=0
         '''if(distFront<2):
             #print 'turn around!'
             turnStart=orient
             navMode=1'''
     else:
-        turnAround()
-
-    print('navmode ',navMode," | dist  (",round(distLeft,1), round(distFront,1) ,round(distRight,1)," | turn ",round(turn,1))
+        sdads=0
+        #turnAround()
+    dataString='navmode ',navMode," | dist  (",round(distLeft,1), round(distFront,1) ,round(distRight,1)," | turn ",round(turn,1)
+    #print('navmode ',navMode," | dist  (",round(distLeft,1), round(distFront,1) ,round(distRight,1)," | turn ",round(turn,1))
 
     '''elif reversing != 0:  # REVERSING
 
@@ -136,8 +135,17 @@ def turnAround():
     if(abs(turnStart-orient)-180<10 or abs(turnStart-orient-360)-180<10 or abs(turnStart-orient+360)<10):
         navMode=0
 
-def standardControls(distRight,distLeft,speed,dataFront,distFront):
-    global turn,lastPathFind,reversing
+def standardControls(distRight,distLeft,dataFront,distFront):
+    global turn,lastPathFind,reversing,speed,x
+
+    x = 1
+    turn = (distRight / (distLeft + distRight)) * 2.0 - 1
+
+    turn = -turn
+    speed = limit_speed(((((distRight + distLeft) / 4.0) + distFront) / 1.25) * maxSpeed, maxSpeed)
+
+    turn = limitTurn(turn)
+
     if (abs(distRight - distLeft) < (distRight + distLeft) / 8):
         turn = turn * ((maxSpeed - speed) / maxSpeed)
 
@@ -151,6 +159,10 @@ def standardControls(distRight,distLeft,speed,dataFront,distFront):
         if (distLeft > distRight):
             reversing = -reversing
 
+def stop():
+    global navMode
+    print ("BREAKING")
+    navMode=1
 
 def limitTurn(turn):
     if(abs(turn)<1):
