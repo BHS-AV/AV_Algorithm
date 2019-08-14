@@ -112,10 +112,13 @@ def render(dt):
         p2 = Circle(n.p, rad)
         if size<6 and size>1:
             cmult=size/5.0
-            p2.setFill(color_rgb(250*cmult,0,250*(cmult)))#250*size,0,250*(1-size)
+            p2.setFill(color_rgb(250*cmult,0,0))#250*size,0,250*(1-size)
         elif size==1:
-            p2=Circle(n.p,4)
+            #p2=Circle(n.p,4)
             p2.setFill("orange")
+        elif size==0:
+            p2=Circle(n.p,2)
+            p2.setFill("white")
         else:
             p2.setFill("red")
 
