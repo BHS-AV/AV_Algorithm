@@ -121,7 +121,6 @@ def render(dt):
             p2.setFill("white")
         else:
             p2.setFill("red")
-
         p2.draw(win)
         lines=n.getLines()
         for l in lines:
@@ -182,7 +181,7 @@ def render(dt):
 def scanWalls(data,dl,dr,df):
     global orient,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes, scale, lscale,lastCarState, nodes, refbool, lastCorrection, haslapped
     if (orient==0):return
-    samples=20
+    samples=25
     st=time.time()
     scanrange=50
     prange=len(nodes)*.8
@@ -203,7 +202,7 @@ def scanWalls(data,dl,dr,df):
     st=time.time()
 
 
-    mininitdist=.25*lscale/scale
+    mininitdist=.37*lscale/scale
     for p in points:
         n=Node(p)
         if (distToClosestNode(n,40)>mininitdist):
