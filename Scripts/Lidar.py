@@ -70,7 +70,7 @@ def print_data(data):
 
     #MAPPING
     m.update(nav.getOrient())
-    if (rospy.get_time() > lt + .5):
+    if (rospy.get_time() > lt + .3):
         lt = rospy.get_time()
         m.scanWalls(data.ranges,distLeft,distRight,distFront,dataString)
 

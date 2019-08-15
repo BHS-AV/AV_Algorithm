@@ -118,20 +118,20 @@ def render(dt):
             p2.setFill("orange")
         elif size==0:
             p2=Circle(n.p,2)
-            p2.setFill("white")
+            p2.setFill("yellow")
         else:
             p2.setFill("red")
         p2.draw(win)
-        lines=n.getLines()
-        for l in lines:
-            l.draw(win)
+        #lines=n.getLines()
+        #for l in lines:
+        #    l.draw(win)
 
     for n in oldNodes:
         size=len(n.cn)
         rad=size/2.0+1
-        p2 = Circle(n.p, rad)
+        '''p2 = Circle(n.p, rad)
         p2.setFill('grey')
-        p2.draw(win)
+        p2.draw(win)'''
         lines=n.getLines()
         for l in lines:
             l.draw(win)
@@ -181,7 +181,7 @@ def render(dt):
 def scanWalls(data,dl,dr,df, datastring):
     global orient,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes, scale, lscale,lastCarState, nodes, refbool, lastCorrection, haslapped
     if (orient==0):return
-    samples=25
+    samples=30
     st=time.time()
     scanrange=50
     prange=len(nodes)*.8
@@ -203,10 +203,30 @@ def scanWalls(data,dl,dr,df, datastring):
 
 
     mininitdist=.37*lscale/scale
+    maxCombineDist=1*lscale/scale
+    addedNodes=[]
     for p in points:
         n=Node(p)
-        if (distToClosestNode(n,40)>mininitdist):
+        n1=getClosestNode(n,40)
+        if(n1!=None):
+            n1nd=n.distToNode(n1)
+            if (n1nd>mininitdist):
+                nodes.append(n)
+                addedNodes.append(n)
+            #else:
+            #    n1.combineNodes(n)
+
+        else:
             nodes.append(n)
+            addedNodes.append(n)
+            #numadded=numadded+1
+
+    for n in addedNodes:
+        n1=getClosestNode(n)
+        if(n1!=None):
+            n1nd=n.distToNode(n)
+            #if(n1nd)
+    #for n in nodes:
 
     #findPPaths()
     findRoutes()
@@ -219,9 +239,9 @@ def scanWalls(data,dl,dr,df, datastring):
         datastring=datastring, round(dirdata.dir,2)
     print (datastring)
     points=[]
-    removeAbsentNodes()
+    #removeAbsentNodes()
     subtimes[1]=round(time.time()-st,3)
-    nodes = connectNodes(nodes)
+    #nodes = connectNodes(nodes)
 
     if (time.time() > lt + .5):
         updatePath(Point(x / scale, y / scale),dl,dr,df)
@@ -519,6 +539,24 @@ def distToClosestNode(n1, range):
         if (dist < closest_dist):
             closest_dist = dist
     return closest_dist
+
+def getClosestNode(n1, range):
+    global nodes
+    end = len(nodes)
+    start = end - range
+    if start < 0: start = 0
+    x=n1.p.x
+    y=n1.p.y
+    closest = None
+    closest_dist = 10000
+    for n in itertools.islice(nodes,start, end):
+        dx = n.p.x - x
+        dy = n.p.y - y
+        dist = np.math.sqrt(dx * dx + dy * dy)
+        if (dist < closest_dist):
+            closest=n
+            closest_dist = dist
+    return closest
 
 def removeImpossibleConnections(rangepercent):
     global nodes, oldlocs
@@ -867,9 +905,9 @@ def cleanNodes(range=40):
     removeTriangles(range)
     removeBranches(range)
     removeTwinNodes(range)
-    resetLargeNodes(range)
-    archiveOldNodes()
-    simplify(range)
+    #resetLargeNodes(range)
+    #archiveOldNodes()
+    #simplify(range)
     subtimes[3]=round((time.time()-st),3)
 
 def archiveOldNodes():
