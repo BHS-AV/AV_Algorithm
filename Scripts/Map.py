@@ -108,7 +108,8 @@ def render(dt):
 
     for n in nodes:
         size=len(n.cn)
-        rad=size/2.0+1
+        #rad=size/2.0+1
+        rad=2
         p2 = Circle(n.p, rad)
         if size<6 and size>1:
             cmult=size/5.0
@@ -122,9 +123,9 @@ def render(dt):
         else:
             p2.setFill("red")
         p2.draw(win)
-        #lines=n.getLines()
-        #for l in lines:
-        #    l.draw(win)
+        lines=n.getLines()
+        for l in lines:
+            l.draw(win)
 
     for n in oldNodes:
         size=len(n.cn)
@@ -204,6 +205,7 @@ def scanWalls(data,dl,dr,df, datastring):
 
     mininitdist=.37*lscale/scale
     maxCombineDist=1*lscale/scale
+    minCombineDist=.2*lscale/scale
     addedNodes=[]
     for p in points:
         n=Node(p)
@@ -213,8 +215,6 @@ def scanWalls(data,dl,dr,df, datastring):
             if (n1nd>mininitdist):
                 nodes.append(n)
                 addedNodes.append(n)
-            #else:
-            #    n1.combineNodes(n)
 
         else:
             nodes.append(n)
@@ -222,7 +222,7 @@ def scanWalls(data,dl,dr,df, datastring):
             #numadded=numadded+1
 
     for n in addedNodes:
-        n1=getClosestNode(n)
+        n1=getClosestNode(n,40)
         if(n1!=None):
             n1nd=n.distToNode(n)
             #if(n1nd)
@@ -241,7 +241,7 @@ def scanWalls(data,dl,dr,df, datastring):
     points=[]
     #removeAbsentNodes()
     subtimes[1]=round(time.time()-st,3)
-    #nodes = connectNodes(nodes)
+    nodes = connectNodes(nodes)
 
     if (time.time() > lt + .5):
         updatePath(Point(x / scale, y / scale),dl,dr,df)
@@ -903,20 +903,20 @@ def cleanNodes(range=40):
     global subtimes,methodIterations
     st=time.time()
     removeTriangles(range)
-    removeBranches(range)
-    removeTwinNodes(range)
+    #removeBranches(range)
+    #removeTwinNodes(range)
     #resetLargeNodes(range)
-    #archiveOldNodes()
-    #simplify(range)
+    simplify(range)
+    archiveOldNodes()
     subtimes[3]=round((time.time()-st),3)
 
 def archiveOldNodes():
     global nodes, oldNodes, methodIterations,subtimes
     st=time.time()
     for n in nodes:
-        if(methodIterations[0]-n.iterationOfCreation>25):
+        if(methodIterations[0]-n.iterationOfCreation>15):
             newest=n.getNewestInNetwork()
-            if(methodIterations[0]-newest.iterationOfCreation>25):
+            if(methodIterations[0]-newest.iterationOfCreation>15):
                 #oldNodes.append(n)
                 n.archive()
                 #nodes.remove(n)
@@ -1223,8 +1223,8 @@ class Node():
         if(nodes.__contains__(self)):
             nodes.remove(self)
             oldNodes.append(self)
-            for n in self.cn:
-                n.archive()
+            #for n in self.cn:
+            #    n.archive()
 
     def removeDuplicateCN(self):
         ncn=[]
@@ -1236,6 +1236,9 @@ class Node():
         if self.cn.__contains__(cn):
             self.cn.remove(cn)
             self.cn.append(nn)
+
+    #def getClosestFour(self, nodes):
+        #cln=[None, None, None]
 
     def removeOtherConnected(self):
         global nodes
