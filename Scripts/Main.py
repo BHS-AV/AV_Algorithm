@@ -37,7 +37,7 @@ for the_file in os.listdir(folder):
 
 while not rospy.is_shutdown():
     #m.update(Lidar.getOrient())
-    if (rospy.get_time()>lrender+2.5 and Lidar.isGoingStraight()):
+    if (rospy.get_time()>lrender+1.5):
         st=time.time()
         lrender=rospy.get_time()
         m.render(dt)

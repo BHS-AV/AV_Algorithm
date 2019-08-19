@@ -129,10 +129,10 @@ def render(dt):
 
     for n in oldNodes:
         size=len(n.cn)
-        rad=size/2.0+1
-        '''p2 = Circle(n.p, rad)
+        #rad=size/2.0+1
+        p2 = Circle(n.p, 1)
         p2.setFill('grey')
-        p2.draw(win)'''
+        p2.draw(win)
         lines=n.getLines()
         for l in lines:
             l.draw(win)
@@ -872,9 +872,14 @@ def connectTwoNodes(n1,n2):
 def straighten(range):
     pass
 
+
+def simplifyPath():
+    global carpath
+    #TODO: Use this to test simplify
+
 def simplify(range=20):
     global nodes,scale,lscale
-    maxdist=3*lscale/scale
+    maxdist=5*lscale/scale
     end=len(nodes)
     start=end-range
     if start<0:start=0
@@ -892,11 +897,15 @@ def simplify(range=20):
                         nfunc2=NodalFunc(n,n.cn[1])
                         odif=nfunc1.getOrientDif(nfunc2)
                         if odif<45:'''
-                        #print ("removing ", n.printNode())
-                        n.cn[0].replaceNWith(n, n.cn[1])
-                        n.cn[1].replaceNWith(n, n.cn[0])
-                        if (nodes.__contains__(n)):
-                            nodes.remove(n)
+                        #TODO MAKE  SURE THIS WORKS
+                        #adif1=getAngDif(n.getAngToNode(n.cn[0]),n.getAngToNode(n.cn[1]))
+                        #if(adif1<3.14/4):
+                        if(True):
+                            #print ("removing ", n.printNode())
+                            n.cn[0].replaceNWith(n, n.cn[1])
+                            n.cn[1].replaceNWith(n, n.cn[0])
+                            if (nodes.__contains__(n)):
+                                nodes.remove(n)
     pass
 
 def cleanNodes(range=40):
@@ -904,7 +913,7 @@ def cleanNodes(range=40):
     st=time.time()
     removeTriangles(range)
     #removeBranches(range)
-    #removeTwinNodes(range)
+    removeTwinNodes(range)
     #resetLargeNodes(range)
     simplify(range)
     archiveOldNodes()
@@ -1092,6 +1101,14 @@ def getSimilarPos(dl,dr,df):
             correctPositionalDrift(data)
 
 
+def getAngDif(a1,a2):
+    adif = abs(a1 - a2)
+    if (adif > 3.14159):
+        adif = abs(a1 + (3.14159 * 2) - a2)
+    if (adif > 3.14159):
+        adif = a1 - (3.14159 * 2) - a2
+    return adif
+
 def getDirFromN1toN2(n1,n2):
     dx=n2.p.getX()-n1.p.getX()
     dy=n2.p.getY()-n1.p.getY()
@@ -1153,6 +1170,7 @@ class Path():
             for l in nl:
                 lines.append(l)
         return lines
+
 
 class Node():
     p=None
@@ -1348,6 +1366,11 @@ class Node():
         if (not self.cn.__contains__(n)):
             self.cn.append(n)
 
+    def getAngToNode(self, n):
+        dx=n.p.x-self.p.x
+        dy=n.p.y-self.p.y
+        a=np.arctan2(dy,dx)
+        return a
 
     def distToNode(self, n):
         dx = self.p.x - n.p.x
