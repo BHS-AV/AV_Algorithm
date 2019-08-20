@@ -111,7 +111,7 @@ def render(dt):
         #rad=size/2.0+1
         rad=2
         p2 = Circle(n.p, rad)
-        if size<6 and size>1:
+        if size<6 and size>2:
             cmult=size/5.0
             p2.setFill(color_rgb(250*cmult,0,0))#250*size,0,250*(1-size)
         elif size==1:
@@ -120,6 +120,9 @@ def render(dt):
         elif size==0:
             p2=Circle(n.p,2)
             p2.setFill("yellow")
+        elif size==2:
+            p2=Circle(n.p,2)
+            p2.setFill("white")
         else:
             p2.setFill("red")
         p2.draw(win)
@@ -163,10 +166,10 @@ def render(dt):
         lineText.setFill('green')
         lineText.setSize(6)
         lineText.draw(win)'''
-    for w in nearbyWalls:
+    '''for w in nearbyWalls:
         wline=Line(w.n1.p,w.n2.p)
         wline.setFill('red')
-        wline.draw(win)
+        wline.draw(win)'''
     for ip in dirIntersects:
         circ=Circle(ip,5)
         circ.setFill('red')
@@ -239,7 +242,6 @@ def scanWalls(data,dl,dr,df, datastring):
         datastring=datastring, round(dirdata.dir,2)
     print (datastring)
     points=[]
-    #removeAbsentNodes()
     subtimes[1]=round(time.time()-st,3)
     nodes = connectNodes(nodes)
 
@@ -891,8 +893,9 @@ def simplify(range=20):
                 dist=n.cn[0].distToNode(n.cn[1])
 
                 if(dist<maxdist):
-                    distToFirst = (n.distToNode(n.cn[1]) + n.distToNode(n.cn[0])) / 2.0
-                    if dist > distToFirst:
+                    #distToFirst = (n.distToNode(n.cn[1]) + n.distToNode(n.cn[0])) / 2.0
+                    #if dist > distToFirst:
+                    if True:
                         '''nfunc1=NodalFunc(n,n.cn[0])
                         nfunc2=NodalFunc(n,n.cn[1])
                         odif=nfunc1.getOrientDif(nfunc2)
@@ -911,21 +914,29 @@ def simplify(range=20):
 def cleanNodes(range=40):
     global subtimes,methodIterations
     st=time.time()
+
     removeTriangles(range)
     #removeBranches(range)
     removeTwinNodes(range)
     #resetLargeNodes(range)
+    #removeAllDupes()
     simplify(range)
     archiveOldNodes()
     subtimes[3]=round((time.time()-st),3)
 
+def removeAllDupes():
+    global nodes
+    for n in nodes:
+        n.removeDupes()
+
 def archiveOldNodes():
     global nodes, oldNodes, methodIterations,subtimes
     st=time.time()
+    archivetime=25
     for n in nodes:
-        if(methodIterations[0]-n.iterationOfCreation>15):
+        if(methodIterations[0]-n.iterationOfCreation>archivetime):
             newest=n.getNewestInNetwork()
-            if(methodIterations[0]-newest.iterationOfCreation>15):
+            if(methodIterations[0]-newest.iterationOfCreation>archivetime):
                 #oldNodes.append(n)
                 n.archive()
                 #nodes.remove(n)
@@ -1274,6 +1285,19 @@ class Node():
         print 'node (',self.p,') is attatched to '
         for n in self.cn:
             print(n.p)
+
+    def removeDupes(self):
+        dupes1=[]
+        for n in self.cn:
+            numsim=0
+            for n1 in self.cn:
+                if (self.cn.index(n1)>self.cn.index(n)):
+                    if (n1.equals(n)):
+                        numsim=numsim+1
+                        if (numsim>1):
+                            dupes1.append(n1)
+        for n in dupes1:
+            self.cn.remove(n)
 
     def removeNode(self,node):
         if(self.cn.__contains__(node)):
