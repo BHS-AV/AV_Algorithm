@@ -921,6 +921,7 @@ def cleanNodes(range=40):
     #resetLargeNodes(range)
     #removeAllDupes()
     simplify(range)'''
+    #TODO when adding nodes, dont just check dist to node, but also check dist to a connection
     simplify(range)
     archiveOldNodes()
     subtimes[3]=round((time.time()-st),3)
