@@ -901,9 +901,9 @@ def simplify(range=20):
                         odif=nfunc1.getOrientDif(nfunc2)
                         if odif<45:'''
                         #TODO MAKE  SURE THIS WORKS
-                        #adif1=getAngDif(n.getAngToNode(n.cn[0]),n.getAngToNode(n.cn[1]))
-                        #if(adif1<3.14/4):
-                        if(True):
+                        adif1=getAngDif(n.getAngToNode(n.cn[0])+3.14,n.getAngToNode(n.cn[1]))
+                        if(adif1<3.14/4):
+                        #if(True):
                             #print ("removing ", n.printNode())
                             n.cn[0].replaceNWith(n, n.cn[1])
                             n.cn[1].replaceNWith(n, n.cn[0])
@@ -914,15 +914,23 @@ def simplify(range=20):
 def cleanNodes(range=40):
     global subtimes,methodIterations
     st=time.time()
-
+    '''removeAbsentNodes()
     removeTriangles(range)
     #removeBranches(range)
-    removeTwinNodes(range)
+    #removeTwinNodes(range)
     #resetLargeNodes(range)
     #removeAllDupes()
+    simplify(range)'''
     simplify(range)
     archiveOldNodes()
     subtimes[3]=round((time.time()-st),3)
+
+def resetSizes():
+    global nodes
+    for n in nodes:
+        size= len(n.cn)
+        if (size==3):
+            a=''
 
 def removeAllDupes():
     global nodes
@@ -1354,17 +1362,20 @@ class Node():
                 self.tryAddNode(c1)
                 #self.cn.append(c1)
         if (len(self.cn)==1):
+            a1=self.getAngToNode(self.cn[0])
             c2 = None
             c2dist = 100000
             for n in itertools.islice(nodes,start,end):
                 if n != self and (not self.cn.__contains__(n)):
-                    dx = (self.p.x - n.p.x)
-                    dy = (self.p.y - n.p.y)
+                    dx = abs(self.p.x - n.p.x)
+                    dy = abs(self.p.y - n.p.y)
                     if (dx < maxdist and dy < maxdist):
-                        dist = np.sqrt(dx * dx + dy * dy)
-                        if dist < c2dist:
-                            c2 = n
-                            c2dist = dist
+                        angdif=getAngDif(self.getAngToNode(n),a1)
+                        if (angdif>3.14/3):
+                            dist = np.sqrt(dx * dx + dy * dy)
+                            if dist < c2dist:
+                                c2 = n
+                                c2dist = dist
             if c2dist < maxdist and c2 != None:
                 c2.tryAddNode(self)
                 self.tryAddNode(c2)
