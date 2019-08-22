@@ -216,19 +216,21 @@ def scanWalls(data,dl,dr,df, datastring):
         if(n1!=None):
             n1nd=n.distToNode(n1)
             if (n1nd>mininitdist):
-                nodes.append(n)
-                addedNodes.append(n)
+                if (shouldAddNew(n,n1)):
+                #if (True):
+                    nodes.append(n)
+                    addedNodes.append(n)
 
         else:
             nodes.append(n)
             addedNodes.append(n)
             #numadded=numadded+1
 
-    for n in addedNodes:
+    '''for n in addedNodes:
         n1=getClosestNode(n,40)
         if(n1!=None):
             n1nd=n.distToNode(n)
-            #if(n1nd)
+            #if(n1nd)'''
     #for n in nodes:
 
     #findPPaths()
@@ -266,6 +268,33 @@ def updateCarState():
     else:
         lastCarState.update(x,y,orient)
 
+
+def getDistToClosestConnection(nn, cln):
+    cln2=None#TODO FINISH THIS
+    cln2d=100000
+    for n in cln.cn:
+        dist=n.distToNode(nn)
+        if (dist<cln2d):
+            cln2d=dist
+            cln2=n
+    if cln2!=None:
+        func=None
+
+def shouldAddNew(nn, cln):
+    cln2=None
+    cln2d=100000
+    for n in cln.cn:
+        dist=n.distToNode(nn)
+        if (dist<cln2d):
+            cln2d=dist
+            cln2=n
+    if (cln2!=None):
+        nang1=nn.getAngToNode(cln2)
+        nang2=nn.getAngToNode(cln)
+        angdif=getAngDif(nang1,nang2)
+        if(angdif>3.14/1.5):
+            return False
+    return True
 
 def shouldUTurnNow():
     global shouldUTurn
@@ -882,8 +911,9 @@ def simplifyPath():
 def simplify(range=20):
     global nodes,scale,lscale
     maxdist=5*lscale/scale
-    end=len(nodes)
-    start=end-range
+    end=len(nodes)-range
+    if (end<0): end=0
+    start=0
     if start<0:start=0
     #print("range = ",start,'-',end)
     for n in itertools.islice(nodes,start,end):
@@ -911,7 +941,7 @@ def simplify(range=20):
                                 nodes.remove(n)
     pass
 
-def cleanNodes(range=40):
+def cleanNodes(range=20):
     global subtimes,methodIterations
     st=time.time()
     '''removeAbsentNodes()
@@ -922,8 +952,8 @@ def cleanNodes(range=40):
     #removeAllDupes()
     simplify(range)'''
     #TODO when adding nodes, dont just check dist to node, but also check dist to a connection
-    simplify(range)
-    archiveOldNodes()
+    simplify(20)
+    archiveOldNodes(30)
     subtimes[3]=round((time.time()-st),3)
 
 def resetSizes():
@@ -938,10 +968,10 @@ def removeAllDupes():
     for n in nodes:
         n.removeDupes()
 
-def archiveOldNodes():
+def archiveOldNodes(archivetime=25):
     global nodes, oldNodes, methodIterations,subtimes
     st=time.time()
-    archivetime=25
+    #archivetime=25
     for n in nodes:
         if(methodIterations[0]-n.iterationOfCreation>archivetime):
             newest=n.getNewestInNetwork()
