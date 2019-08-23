@@ -261,6 +261,24 @@ def scanWalls(data,dl,dr,df, datastring):
     scantime = getSubTimes(subtimes)
 
 
+def retrieveNodes():
+    global nodes, oldNodes,carpath,scale,lscale,lastCarState
+    upper=len(carpath.path)-1
+    maxd=2*lscale/scale
+    updatenum=20
+    cp=carpath.path[len(carpath.path)-1]
+    clsd=1000000
+    clscp=None
+    maxnum=len(carpath.path)-50
+    for p in carpath.path:
+        if (carpath.path.index(p)<maxnum):
+            d=p.distToNode(cp)
+            if(d<clscp):
+                #TODO ADD THIS TO RETRIEVE NODES
+                s=0
+
+
+
 def updateCarState():
     global lastCarState,x,y,orient
     if lastCarState==None:
@@ -281,6 +299,7 @@ def getDistToClosestConnection(nn, cln):
         func=None
 
 def shouldAddNew(nn, cln):
+    global loops,scale,lscale
     cln2=None
     cln2d=100000
     for n in cln.cn:
@@ -294,6 +313,9 @@ def shouldAddNew(nn, cln):
         angdif=getAngDif(nang1,nang2)
         if(angdif>3.14/1.5):
             return False
+    if (loops>0):
+        #TODO MAKE BETTER FOR EXPLORING DIFFERENT LOCATIONS
+        return False
     return True
 
 def shouldUTurnNow():
@@ -910,7 +932,7 @@ def simplifyPath():
 
 def simplify(range=20):
     global nodes,scale,lscale
-    maxdist=5*lscale/scale
+    maxdist=7*lscale/scale
     end=len(nodes)-range
     if (end<0): end=0
     start=0
@@ -923,22 +945,16 @@ def simplify(range=20):
                 dist=n.cn[0].distToNode(n.cn[1])
 
                 if(dist<maxdist):
-                    #distToFirst = (n.distToNode(n.cn[1]) + n.distToNode(n.cn[0])) / 2.0
-                    #if dist > distToFirst:
-                    if True:
-                        '''nfunc1=NodalFunc(n,n.cn[0])
-                        nfunc2=NodalFunc(n,n.cn[1])
-                        odif=nfunc1.getOrientDif(nfunc2)
-                        if odif<45:'''
-                        #TODO MAKE  SURE THIS WORKS
-                        adif1=getAngDif(n.getAngToNode(n.cn[0])+3.14,n.getAngToNode(n.cn[1]))
-                        if(adif1<3.14/4):
-                        #if(True):
-                            #print ("removing ", n.printNode())
-                            n.cn[0].replaceNWith(n, n.cn[1])
-                            n.cn[1].replaceNWith(n, n.cn[0])
-                            if (nodes.__contains__(n)):
-                                nodes.remove(n)
+                    adif1 = getAngDif(n.getAngToNode(n.cn[0]) + 3.14, n.getAngToNode(n.cn[1]))
+                    maxA=pow((1-(dist/maxdist)),2)*(3.14/2)
+                    if (abs(adif1) < maxA):
+                        print ("combining nodes "+str(dist*scale/lscale)+" apart, adif = "+str(adif1)+" (max = "+str(maxA)+")")
+                        # if(True):
+                        # print ("removing ", n.printNode())
+                        n.cn[0].replaceNWith(n, n.cn[1])
+                        n.cn[1].replaceNWith(n, n.cn[0])
+                        if (nodes.__contains__(n)):
+                            nodes.remove(n)
     pass
 
 def cleanNodes(range=20):
@@ -953,6 +969,9 @@ def cleanNodes(range=20):
     simplify(range)'''
     #TODO when adding nodes, dont just check dist to node, but also check dist to a connection
     simplify(20)
+    removeBranches(20)
+    #combineClose(20)
+    #removeTriangles(20)
     archiveOldNodes(30)
     subtimes[3]=round((time.time()-st),3)
 
@@ -963,6 +982,20 @@ def resetSizes():
         if (size==3):
             a=''
 
+def combineClose(range=10):
+    global nodes, oldNodes
+    start=0
+    end=len(nodes)-range
+    maxdist=1*lscale/scale
+    if(end<0):end=0
+    for n in itertools.islice(nodes,start,end):
+        if nodes.__contains__(n):
+            for n1 in n.cn:
+                dist=n.distToNode(n1)
+                if(dist<maxdist):
+                    n.combineNodes(n1)
+                    if(nodes.__contains__(n1)):
+                        nodes.remove(n1)
 def removeAllDupes():
     global nodes
     for n in nodes:
@@ -1046,15 +1079,18 @@ def removeTriangles(range=20):
 
 def removeBranches(range=20):
     global nodes
-    end=len(nodes)
-    start=end-range
+    end=len(nodes)-range
+    start=0
+    if end<0:end=0
     if start<0:start=0
+    maxdist=2*lscale/scale
     for n in itertools.islice(nodes,start,end):
-
         if len(n.cn) == 1:
             if (len(n.cn[0].cn)>2):
-                n.cn[0].removeNode(n)
-                nodes.remove(n)
+                dist=n.distToNode(n.cn[0])
+                if(dist<maxdist):
+                    n.cn[0].removeNode(n)
+                    nodes.remove(n)
 
 def resetLargeNodes(range=20):
     global nodes, scale, lscale
