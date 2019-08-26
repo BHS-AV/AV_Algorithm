@@ -931,14 +931,15 @@ def simplifyPath():
     #TODO: Use this to test simplify
 
 def simplify(range=20):
-    global nodes,scale,lscale
-    maxdist=7*lscale/scale
+    global nodes,scale,lscale, methodIterations
+    maxdist=15*lscale/scale
     end=len(nodes)-range
     if (end<0): end=0
     start=0
     if start<0:start=0
     #print("range = ",start,'-',end)
-    for n in itertools.islice(nodes,start,end):
+    for n in nodes:
+        if (methodIterations[0]-n.iterationOfCreation<range):continue
 
         if(not n.hasDisconnect()):
             if(len(n.cn)==2):
@@ -946,7 +947,7 @@ def simplify(range=20):
 
                 if(dist<maxdist):
                     adif1 = getAngDif(n.getAngToNode(n.cn[0]) + 3.14, n.getAngToNode(n.cn[1]))
-                    maxA=pow((1-(dist/maxdist)),2)*(3.14/2)
+                    maxA=pow((1-(dist/maxdist)),4)*(3.14/2)
                     if (abs(adif1) < maxA):
                         print ("combining nodes "+str(dist*scale/lscale)+" apart, adif = "+str(adif1)+" (max = "+str(maxA)+")")
                         # if(True):
@@ -968,10 +969,11 @@ def cleanNodes(range=20):
     #removeAllDupes()
     simplify(range)'''
     #TODO when adding nodes, dont just check dist to node, but also check dist to a connection
-    simplify(20)
-    removeBranches(20)
+    removeBranches(10)
+    removeTriangles(10)
+
+    simplify(15)
     #combineClose(20)
-    #removeTriangles(20)
     archiveOldNodes(30)
     subtimes[3]=round((time.time()-st),3)
 
@@ -1067,7 +1069,9 @@ def removeTriangles(range=20):
     end=len(nodes)
     start=end-range
     if start<0:start=0
-    for n in itertools.islice(nodes,start,end):
+    #for n in itertools.islice(nodes,start,end):
+    for n in nodes:
+        if (methodIterations[0]-n.iterationOfCreation<range):continue
         if len(n.cn)==2:
             if n.cn[0].contains(n.cn[1]) and n.cn[1].contains(n.cn[0]):
                 n.cn[0].removeNode(n)
@@ -1084,7 +1088,10 @@ def removeBranches(range=20):
     if end<0:end=0
     if start<0:start=0
     maxdist=2*lscale/scale
-    for n in itertools.islice(nodes,start,end):
+    #for n in itertools.islice(nodes,start,end):
+    for n in nodes:
+        if (methodIterations[0]-n.iterationOfCreation<range):continue
+
         if len(n.cn) == 1:
             if (len(n.cn[0].cn)>2):
                 dist=n.distToNode(n.cn[0])
