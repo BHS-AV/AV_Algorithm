@@ -50,11 +50,12 @@ nearbyWalls=[]
 routedirs=[]
 dirIntersects=[]
 lastCarState=None
+forceRetrieval=False
 
 goal=None
 timeOfLastLoop=0
 loops=0
-shouldUTurn=False
+#shouldUTurn=False
 
 def update(dir):
     global win,front,c,x,y,orient, oldLocs
@@ -183,7 +184,7 @@ def render(dt):
     front.draw(win)
 
 def scanWalls(data,dl,dr,df, datastring):
-    global orient,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes, scale, lscale,lastCarState, nodes, refbool, lastCorrection, haslapped
+    global orient,forceRetrieval,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes, scale, lscale,lastCarState, nodes, refbool, lastCorrection, haslapped
     if (orient==0):return
     samples=30
     st=time.time()
@@ -249,7 +250,7 @@ def scanWalls(data,dl,dr,df, datastring):
 
     if (time.time() > lt + .5):
         if(loops>0):
-            if(len(nodes)<25):
+            if(len(nodes)<25) or forceRetrieval:
                 retrieveNodes()
         updatePath(Point(x / scale, y / scale),dl,dr,df)
         if(time.time()-lastCorrection>10):
@@ -350,7 +351,7 @@ def shouldUTurnNow():
     return False
 
 def hasLooped():
-    global carpath,methodIterations,x,y,scale,lscale, timeOfLastLoop,loops,shouldUTurn
+    global carpath,methodIterations,x,y,scale,lscale, timeOfLastLoop,loops,shouldUTurn,forceRetrieval
     car=Point(x/scale,y/scale)
     maxdist=2.0*lscale/scale
     if(time.time()-timeOfLastLoop>5):
@@ -365,7 +366,8 @@ def hasLooped():
             #lid.setUTurn()
             loops += 1
             if(loops==1):
-                shouldUTurn=True
+                forceRetrieval
+                #shouldUTurn=True
 
 
 def findRoutes():
