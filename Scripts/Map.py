@@ -248,6 +248,9 @@ def scanWalls(data,dl,dr,df, datastring):
     nodes = connectNodes(nodes)
 
     if (time.time() > lt + .5):
+        if(loops>0):
+            if(len(nodes)<25):
+                retrieveNodes()
         updatePath(Point(x / scale, y / scale),dl,dr,df)
         if(time.time()-lastCorrection>10):
             getSimilarPos(dl,dr,df)
@@ -266,17 +269,28 @@ def retrieveNodes():
     upper=len(carpath.path)-1
     maxd=2*lscale/scale
     updatenum=20
+    numretrieved=0
     cp=carpath.path[len(carpath.path)-1]
     clsd=1000000
-    clscp=None
+    clsp=None
     maxnum=len(carpath.path)-50
     for p in carpath.path:
         if (carpath.path.index(p)<maxnum):
             d=p.distToNode(cp)
-            if(d<clscp):
+            if(d<clsd):
+                clsp=p
+                clsd=d
+
                 #TODO ADD THIS TO RETRIEVE NODES
                 s=0
-
+    clspt=clsp.iterationOfCreation
+    itermin=clspt-30
+    itermax=clspt+30
+    for n in oldNodes:
+        if(n.iterationOfCreation>itermin and n.iterationOfCreation<itermax):
+            n.retrieve()
+            numretrieved=numretrieved+1
+    print ("Retrieved "+str(numretrieved)+" Nodes")
 
 
 def updateCarState():
@@ -302,20 +316,30 @@ def shouldAddNew(nn, cln):
     global loops,scale,lscale
     cln2=None
     cln2d=100000
+    nang2 = nn.getAngToNode(cln)
+
     for n in cln.cn:
-        dist=n.distToNode(nn)
-        if (dist<cln2d):
-            cln2d=dist
-            cln2=n
-    if (cln2!=None):
-        nang1=nn.getAngToNode(cln2)
-        nang2=nn.getAngToNode(cln)
-        angdif=getAngDif(nang1,nang2)
-        if(angdif>3.14/1.5):
-            return False
+        if(loops==0):
+            dist=n.distToNode(nn)
+            if (dist<cln2d):
+                cln2d=dist
+                cln2=n
+        else:
+            nang3=n.getAngToNode(n)
+            adif1=getAngDif(nang3+3.142,nang2)
+            if(abs(adif1)<3.14/6):
+                return False
+
+
     if (loops>0):
         #TODO MAKE BETTER FOR EXPLORING DIFFERENT LOCATIONS
         return False
+    else:
+        if (cln2 != None):
+            nang1 = nn.getAngToNode(cln2)
+            angdif = getAngDif(nang1, nang2)
+            if (angdif > 3.14 / 1.5):
+                return False
     return True
 
 def shouldUTurnNow():
@@ -949,7 +973,7 @@ def simplify(range=20):
                     adif1 = getAngDif(n.getAngToNode(n.cn[0]) + 3.14, n.getAngToNode(n.cn[1]))
                     maxA=pow((1-(dist/maxdist)),4)*(3.14/2)
                     if (abs(adif1) < maxA):
-                        print ("combining nodes "+str(dist*scale/lscale)+" apart, adif = "+str(adif1)+" (max = "+str(maxA)+")")
+                        #print ("combining nodes "+str(dist*scale/lscale)+" apart, adif = "+str(adif1)+" (max = "+str(maxA)+")")
                         # if(True):
                         # print ("removing ", n.printNode())
                         n.cn[0].replaceNWith(n, n.cn[1])
@@ -1334,6 +1358,15 @@ class Node():
         if(nodes.__contains__(self)):
             nodes.remove(self)
             oldNodes.append(self)
+            #for n in self.cn:
+            #    n.archive()
+
+    def retrieve(self):
+        global nodes, oldNodes,methodIterations
+        if(oldNodes.__contains__(self)):
+            oldNodes.remove(self)
+            nodes.append(self)
+            self.iterationOfCreation=methodIterations[0]
             #for n in self.cn:
             #    n.archive()
 
