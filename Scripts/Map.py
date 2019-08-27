@@ -246,10 +246,10 @@ def scanWalls(data,dl,dr,df, datastring):
     if(len(routedirs)>1):
         print("multiple routes")
         #lid.stop()
-    datastring=datastring," | routes : "
+    datastring=datastring+" | routes : "
 
     for dirdata in routedirs:
-        datastring=datastring, round(dirdata.dir,2)
+        datastring=datastring+" "+str(round(dirdata.dir,2))
     print (datastring)
     points=[]
     subtimes[1]=round(time.time()-st,3)
@@ -258,14 +258,15 @@ def scanWalls(data,dl,dr,df, datastring):
         retrieveNodes()
     if (time.time() > lt + .5):
 
-        updatePath(Point(x / scale, y / scale),dl,dr,df)
+        if (not lid.isBreaking()):
+            updatePath(Point(x / scale, y / scale),dl,dr,df)
         if(time.time()-lastCorrection>10):
             getSimilarPos(dl,dr,df)
         cleanNodes(scanrange)
         updateCarState()
         #findRoutes()
         hasLooped()
-        if (loops > 0):
+        if (loops > 0 and not lid.isBreaking()):
             if (len(nodes) < 25):
                 retrieveNodes()
         methodIterations[1]=methodIterations[1]+1
@@ -566,17 +567,20 @@ def findPPaths():
     start=end-range
     if(start<0):start=0
     for p in ppaths:
-        if (not nodes.__contains__(p[0])):
+        if (not nodes.__contains__(p[0]) and not oldNodes.__contains__(p[0])):
             ppaths.remove(p)
-        elif (not nodes.__contains__(p[1])):
+        elif (not nodes.__contains__(p[1]) and not oldNodes.__contains__(p[0])):
             ppaths.remove(p)
     #start=1
     #end=int(len(nodes)*.9)
-    for n in itertools.islice(nodes,start,end):
-        index=nodes.index(n)
+    for n in oldNodes:
+        #index=nodes.index(n)
+        index=oldNodes.index(n)
         for n1 in n.cn:
-            if(nodes.__contains__(n1)):
-                index1=nodes.index(n1)
+            #if(nodes.__contains__(n1)):
+            if(oldNodes.__contains__(n1)):
+                #index1=nodes.index(n1)
+                index1=oldNodes.index(n1)
                 if (index1>index):
                     cpath=getClosestCarPath(n,n1)
                     if(cpath!=None):
@@ -590,6 +594,21 @@ def findPPaths():
     findPHalls()
     methodIterations[2]=methodIterations[2]+1
 
+
+def removeMatrices():
+    global oldNodes, scale, lscale
+    maxdist=1*lscale/scale
+    matrices=[]
+    for n in oldNodes:
+        if (len(n.cn)>2):
+            matrices.append(n)
+        #for cn in n.cn:
+            #cnd=n.distToNode(cn)
+
+    for m in matrices:
+        if(oldNodes.__contains__(m)):
+            #TODO COLLAPSE FUNCTION
+            a=0
 
 def findPHalls():
     global phalls,ppaths,phallnodes
@@ -982,7 +1001,7 @@ def simplifyPath():
 
 def simplify(range=20):
     global nodes,scale,lscale, methodIterations
-    maxdist=25*lscale/scale
+    maxdist=15*lscale/scale
     end=len(nodes)-range
     if (end<0): end=0
     start=0
@@ -1002,6 +1021,13 @@ def simplify(range=20):
                         #print ("combining nodes "+str(dist*scale/lscale)+" apart, adif = "+str(adif1)+" (max = "+str(maxA)+")")
                         # if(True):
                         # print ("removing ", n.printNode())
+                        n.cn[0].replaceNWith(n, n.cn[1])
+                        n.cn[1].replaceNWith(n, n.cn[0])
+                        if (nodes.__contains__(n)):
+                            nodes.remove(n)
+                elif(dist<maxdist+10):
+                    adif1 = getAngDif(n.getAngToNode(n.cn[0]) + 3.14, n.getAngToNode(n.cn[1]))
+                    if(abs(adif1)<3.1415/18):
                         n.cn[0].replaceNWith(n, n.cn[1])
                         n.cn[1].replaceNWith(n, n.cn[0])
                         if (nodes.__contains__(n)):
@@ -1059,10 +1085,10 @@ def archiveOldNodes(archivetime=25):
     #archivetime=25
     for n in nodes:
         if(methodIterations[0]-n.iterationOfCreation>archivetime):
-            newest=n.getNewestInNetwork()
-            if(methodIterations[0]-newest.iterationOfCreation>archivetime):
+            #newest=n.getNewestInNetwork()
+            #if(methodIterations[0]-newest.iterationOfCreation>archivetime):
                 #oldNodes.append(n)
-                n.archive()
+            n.archive()
                 #nodes.remove(n)
     subtimes[6]=time.time()-st
 
@@ -1521,6 +1547,9 @@ class Node():
                     return False
             return True
         return False
+
+    #def getClosestConnected(self):
+
 
     def combineNodes(self,n1):
         x=(self.p.x+n1.p.x)/2.0

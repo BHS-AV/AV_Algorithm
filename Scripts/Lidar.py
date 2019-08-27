@@ -111,7 +111,7 @@ def print_data(data):
         x=1
         #sdads=0
         #turnAround()
-    dataString='navmode ',navMode," | dist  (",round(distLeft,1), round(distFront,1) ,round(distRight,1)," | turn ",round(turn,1)
+    dataString="navmode "+str(navMode)+" | dist  ("+str(round(distLeft,1))+" "+str(round(distFront,1))+" "+str(round(distRight,1))+") | turn "+str(round(turn,1))
     #print('navmode ',navMode," | dist  (",round(distLeft,1), round(distFront,1) ,round(distRight,1)," | turn ",round(turn,1))
 
     '''elif reversing != 0:  # REVERSING
@@ -129,6 +129,10 @@ def print_data(data):
     if (needsToReverse(dataFront, distFront, 2) == 0):
         reversing = 0'''
 
+    if (isBreaking()):
+        if (time.time() - lastPathFind > 4):
+            lastPathFind = time.time()
+            m.findPPaths()
     lastturn=turn
     Controls.move(x, turn, speed)
 
@@ -152,10 +156,6 @@ def standardControls(distRight,distLeft,dataFront,distFront):
     if (abs(distRight - distLeft) < (distRight + distLeft) / 8):
         turn = turn * ((maxSpeed - speed) / maxSpeed)
 
-    if (abs(turn) < .2):
-        if (time.time() - lastPathFind > 4):
-            lastPathFind = time.time()
-            m.findPPaths()
 
     if (needsToReverse(dataFront, distFront) > 0):
         reversing = 1
@@ -166,6 +166,10 @@ def stop():
     global navMode
     print ("BREAKING")
     navMode=1
+
+def isBreaking():
+    global navMode
+    return navMode==1
 
 def limitTurn(turn):
     if(abs(turn)<1):
