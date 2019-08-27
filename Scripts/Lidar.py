@@ -105,8 +105,11 @@ def print_data(data):
             #print 'turn around!'
             turnStart=orient
             navMode=1'''
-    else:
-        sdads=0
+    elif navMode==1:
+        speed=0
+        turn=0
+        x=1
+        #sdads=0
         #turnAround()
     dataString='navmode ',navMode," | dist  (",round(distLeft,1), round(distFront,1) ,round(distRight,1)," | turn ",round(turn,1)
     #print('navmode ',navMode," | dist  (",round(distLeft,1), round(distFront,1) ,round(distRight,1)," | turn ",round(turn,1))

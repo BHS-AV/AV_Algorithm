@@ -32,6 +32,8 @@ nodes=[]
 oldNodes=[]
 carpath=None
 ppaths=[]
+phalls=[]
+phallnodes=[]
 connections=[]
 similarpos=[]
 fov=3.14159*4.0/3.0
@@ -63,7 +65,7 @@ def update(dir):
     orient=d1
 
 def render(dt):
-    global win,front,c,x,y,orient,oldNodes, routedirs,oldLocs,points,allwalls,dirIntersects,scantime,wall,carpath,wallpairs,lastCarState,ppaths,similarpos,methodIterations
+    global win,phallnodes,front,c,x,y,orient,oldNodes, routedirs,oldLocs,points,allwalls,dirIntersects,scantime,wall,carpath,wallpairs,lastCarState,ppaths,similarpos,methodIterations
     cx=x
     cy=y
     co=orient
@@ -140,6 +142,11 @@ def render(dt):
         lines=n.getLines()
         for l in lines:
             l.draw(win)
+
+    for p in phallnodes:
+        p2=Circle(p.p,3)
+        p2.setFill("purple")
+        p2.draw(win)
 
     for p in ppaths:
         c1=Line(p[0].p,p[1].p)
@@ -247,11 +254,10 @@ def scanWalls(data,dl,dr,df, datastring):
     points=[]
     subtimes[1]=round(time.time()-st,3)
     nodes = connectNodes(nodes)
-
+    if(forceRetrieval):
+        retrieveNodes()
     if (time.time() > lt + .5):
-        if(loops>0):
-            if(len(nodes)<25) or forceRetrieval:
-                retrieveNodes()
+
         updatePath(Point(x / scale, y / scale),dl,dr,df)
         if(time.time()-lastCorrection>10):
             getSimilarPos(dl,dr,df)
@@ -259,6 +265,9 @@ def scanWalls(data,dl,dr,df, datastring):
         updateCarState()
         #findRoutes()
         hasLooped()
+        if (loops > 0):
+            if (len(nodes) < 25):
+                retrieveNodes()
         methodIterations[1]=methodIterations[1]+1
 
     methodIterations[0]=methodIterations[0]+1
@@ -367,6 +376,7 @@ def hasLooped():
             loops += 1
             if(loops==1):
                 forceRetrieval
+                lid.stop()
                 #shouldUTurn=True
 
 
@@ -577,8 +587,22 @@ def findPPaths():
                             if(abs(deltaOrient)>45):
                                 ppaths.append([n,n1])
     subtimes[5]=round((time.time()-st),3)
+    findPHalls()
     methodIterations[2]=methodIterations[2]+1
 
+
+def findPHalls():
+    global phalls,ppaths,phallnodes
+    phallnodes=[]
+    phalls=[]
+    for p in ppaths:
+        for n in p:
+            if(len(n.cn)==1):
+                phallnodes.append(n)
+            elif(len(n.cn)==2):
+                adif=getAngDif(n.getAngToNode(n.cn[0])+3.142,n.getAngToNode(n.cn[1]))
+                if(abs(adif)>3.14/4):
+                    phallnodes.append(n)
 
 
 def updatePath(pos,dl,dr,df):
@@ -958,7 +982,7 @@ def simplifyPath():
 
 def simplify(range=20):
     global nodes,scale,lscale, methodIterations
-    maxdist=15*lscale/scale
+    maxdist=25*lscale/scale
     end=len(nodes)-range
     if (end<0): end=0
     start=0
@@ -1231,7 +1255,7 @@ def getAngDif(a1,a2):
 def getDirFromN1toN2(n1,n2):
     dx=n2.p.getX()-n1.p.getX()
     dy=n2.p.getY()-n1.p.getY()
-    orient=np.math.atan(dy/dx)*180/3.14
+    orient=np.math.atan2(dy,dx)*180/3.14
     if(dx<0):orient=orient+180
     return orient
 
