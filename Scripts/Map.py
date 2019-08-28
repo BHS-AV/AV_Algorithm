@@ -260,6 +260,8 @@ def scanWalls(data,dl,dr,df, datastring):
 
         if (not lid.isBreaking()):
             updatePath(Point(x / scale, y / scale),dl,dr,df)
+        else:
+            removeMatrices()
         if(time.time()-lastCorrection>10):
             getSimilarPos(dl,dr,df)
         cleanNodes(scanrange)
@@ -607,8 +609,9 @@ def removeMatrices():
 
     for m in matrices:
         if(oldNodes.__contains__(m)):
+            m.collapse(maxdist)
             #TODO COLLAPSE FUNCTION
-            a=0
+            #a=0
 
 def findPHalls():
     global phalls,ppaths,phallnodes
@@ -1385,6 +1388,21 @@ class Node():
                         if not self.cn.__contains__(node):
                             self.cn.append(node)
 
+    def collapse(self,mdist):
+        global nodes, oldNodes
+        toTake=[]
+        if(not oldNodes.__contains__(self)):return
+        for n in self.cn:
+            dist=self.distToNode(n)
+            if(dist<mdist):
+                toTake.append(n)
+        for n in toTake:
+            self.combineNodes(n)
+            if(oldNodes.__contains__(n)):
+                oldNodes.remove(n)
+            if(nodes.__contains__(n)):
+                nodes.remove(n)
+
 #    def getNewestConnected(self):
 #        for n in n.cn
     def getNetwork(self, clist=[]):
@@ -1556,7 +1574,7 @@ class Node():
         y=(self.p.y+n1.p.y)/2.0
         self.p=Point(x,y)
         for n in n1.cn:
-            if (not self.cn.__contains__(n)):
+            if (not self.cn.__contains__(n) and not self.equals(n)):
                 self.cn.append(n)
 
     def tryAddNode(self, n):
