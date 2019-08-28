@@ -262,6 +262,8 @@ def scanWalls(data,dl,dr,df, datastring):
             updatePath(Point(x / scale, y / scale),dl,dr,df)
         else:
             removeMatrices()
+            if(len(nodes)==0):
+                tieUpLooseEnds()
         if(time.time()-lastCorrection>10):
             getSimilarPos(dl,dr,df)
         cleanNodes(scanrange)
@@ -305,6 +307,14 @@ def retrieveNodes():
             numretrieved=numretrieved+1
     print ("Retrieved "+str(numretrieved)+" Nodes")
 
+def tieUpLooseEnds():
+    global nodes, oldNodes
+    singles=[]
+    for n in oldNodes:
+        if (len(n.cn)==0):
+            singles.append(n)
+    for n in singles:
+        print (str(n.p.x)+", "+str(n.p.y))
 
 def updateCarState():
     global lastCarState,x,y,orient
@@ -330,7 +340,7 @@ def shouldAddNew(nn, cln):
     cln2=None
     cln2d=100000
     nang2 = nn.getAngToNode(cln)
-
+    if(lid.isBreaking()):return False
     for n in cln.cn:
         if(loops==0):
             dist=n.distToNode(nn)
