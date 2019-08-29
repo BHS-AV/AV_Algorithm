@@ -54,6 +54,8 @@ dirIntersects=[]
 lastCarState=None
 forceRetrieval=False
 
+
+route=None
 goal=None
 timeOfLastLoop=0
 loops=0
@@ -65,7 +67,7 @@ def update(dir):
     orient=d1
 
 def render(dt):
-    global win,phallnodes,front,c,x,y,orient,oldNodes, routedirs,oldLocs,points,allwalls,dirIntersects,scantime,wall,carpath,wallpairs,lastCarState,ppaths,similarpos,methodIterations
+    global win,route,phallnodes,front,c,x,y,orient,oldNodes, routedirs,oldLocs,points,allwalls,dirIntersects,scantime,wall,carpath,wallpairs,lastCarState,ppaths,similarpos,methodIterations
     cx=x
     cy=y
     co=orient
@@ -153,6 +155,14 @@ def render(dt):
         c1.setFill("orange")
         c1.draw(win)
 
+    if(route!=None):
+        for p in route.rn:
+            p1 = Circle(p.p, 5)
+            p1.setFill("green")
+            p1.draw(win)
+            lines = p.getLines()
+            for l in lines:
+                l.draw(win)
     for p in similarpos:
         p1=Circle(p.p,5)
         p1.setFill("green")
@@ -191,7 +201,7 @@ def render(dt):
     front.draw(win)
 
 def scanWalls(data,dl,dr,df, datastring):
-    global orient,forceRetrieval,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes, scale, lscale,lastCarState, nodes, refbool, lastCorrection, haslapped
+    global orient,route,forceRetrieval,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes, scale, lscale,lastCarState, nodes, refbool, lastCorrection, haslapped
     if (orient==0):return
     samples=30
     st=time.time()
@@ -229,7 +239,7 @@ def scanWalls(data,dl,dr,df, datastring):
                     nodes.append(n)
                     addedNodes.append(n)
 
-        else:
+        elif(not lid.isBreaking()):
             nodes.append(n)
             addedNodes.append(n)
             #numadded=numadded+1
@@ -243,10 +253,12 @@ def scanWalls(data,dl,dr,df, datastring):
 
     #findPPaths()
     findRoutes()
-    if(len(routedirs)>1):
-        print("multiple routes")
+    '''if(len(routedirs)>1):
+        print("multiple routes")'''
         #lid.stop()
     datastring=datastring+" | routes : "
+
+    datastring=datastring+" | N : "+str(len(nodes))+"-"+str(len(oldNodes))
 
     for dirdata in routedirs:
         datastring=datastring+" "+str(round(dirdata.dir,2))
@@ -254,6 +266,8 @@ def scanWalls(data,dl,dr,df, datastring):
     points=[]
     subtimes[1]=round(time.time()-st,3)
     nodes = connectNodes(nodes)
+    if(route==None and lastCarState!=None):
+        route=Route()
     if(forceRetrieval):
         retrieveNodes()
     if (time.time() > lt + .5):
@@ -308,12 +322,15 @@ def retrieveNodes():
     print ("Retrieved "+str(numretrieved)+" Nodes")
 
 def tieUpLooseEnds():
-    global nodes, oldNodes
+    global nodes, oldNodes,scale, lscale
     singles=[]
+    maxd=2*lscale/scale
+    #print ("tying up loose ends")
     for n in oldNodes:
-        if (len(n.cn)==0):
+        if (len(n.cn)==1):
             singles.append(n)
     for n in singles:
+        cn=getClosestANode(n)
         print (str(n.p.x)+", "+str(n.p.y))
 
 def updateCarState():
@@ -693,6 +710,24 @@ def getClosestNode(n1, range):
             closest_dist = dist
     return closest
 
+def getClosestANode(n1, range):
+    global nodes
+    end = len(nodes)
+    start = end - range
+    if start < 0: start = 0
+    x=n1.p.x
+    y=n1.p.y
+    closest = None
+    closest_dist = 10000
+    for n in itertools.islice(nodes,start, end):
+        dx = n.p.x - x
+        dy = n.p.y - y
+        dist = np.math.sqrt(dx * dx + dy * dy)
+        if (dist < closest_dist):
+            closest=n
+            closest_dist = dist
+    return closest
+
 def removeImpossibleConnections(rangepercent):
     global nodes, oldlocs
 
@@ -1048,7 +1083,7 @@ def simplify(range=20):
     pass
 
 def cleanNodes(range=20):
-    global subtimes,methodIterations
+    global subtimes,methodIterations,nodes,oldNodes
     st=time.time()
     '''removeAbsentNodes()
     removeTriangles(range)
@@ -1063,7 +1098,10 @@ def cleanNodes(range=20):
 
     simplify(15)
     #combineClose(20)
+    #print(" before archive : "+str(len(nodes))+"-"+str(len(oldNodes)))
     archiveOldNodes(30)
+    #print(" after archive : "+str(len(nodes))+"-"+str(len(oldNodes)))
+
     subtimes[3]=round((time.time()-st),3)
 
 def resetSizes():
@@ -1206,7 +1244,7 @@ def correctPositionalDrift(data):
     possNewPos=[]
     for p in similarpos:
         datasim = getDataSim(data, p.data)
-        print 'data sim = ', datasim, '%'
+        #print 'data sim = ', datasim, '%'
         if(datasim>.8):
             possNewPos.append([p.p.x*scale,p.p.y*scale])
     if(len(possNewPos)==0):
@@ -1435,8 +1473,14 @@ class Node():
 
     def archive(self):
         global nodes, oldNodes
+        if(len(nodes)<3):
+            print "archiving "+str(round(self.p.x))+", "+str(round(self.p.y))+" current len = "+str(len(nodes))
         if(nodes.__contains__(self)):
+            if (len(nodes) < 3):
+                print("Done")
             nodes.remove(self)
+            if (len(nodes) < 3):
+                print("new size = "+str(len(nodes)))
             oldNodes.append(self)
             #for n in self.cn:
             #    n.archive()
@@ -1839,6 +1883,44 @@ class LineFunc():
     
     def __repr__(self):
         return "f(x)=".format(str(self.m),"x+",str(self.b))
+def updateRoute():
+    global route
+    if(route==None):return
+    route.getClosest()
+
+class Route():
+    rn=[]
+    dif=0
+
+    def __init__(self):
+        global lastCarState,scale
+        self.rn=[]
+        x1=lastCarState.x/scale
+        y1=lastCarState.y/scale
+        for i  in range(10):
+            if (i%2==0):
+                x1+=50
+            else:
+                y1+=50
+            self.rn.append(Node(Point(x1,y1)))
+            if(len(self.rn)>1):
+                self.rn[len(self.rn)-1].tryAddNode(self.rn[len(self.rn)-2])
+    def getClosest(self):
+        global lastCarState,scale
+        car=Node(Point(lastCarState.x/scale,lastCarState.y/scale))
+        cd=1000000
+        cn=None
+        for n in self.rn:
+            d=car.distToNode(n)
+            if(d<cd):
+                cd=d
+                cn=n
+        a=car.getAngToNode(cn)
+        self.dif=getAngDif(a,lastCarState.orient)
+
+        print ("closest is "+str(self.rn.index(cn))+" in dir "+str((a*180/3.14))+" | dif = "+str(self.dif))
+
+
 def saveImg(imgnum):
     # saves the current TKinter object in postscript format
     win.postscript(file="track/image.eps", colormode='color')

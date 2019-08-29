@@ -99,7 +99,12 @@ def print_data(data):
 
     if navMode==0:  # STANDARD CONTROLS
         #kiojdio=2
-        standardControls(distRight,distLeft,dataFront,distFront)
+        #standardControls(distRight,distLeft,dataFront,distFront)
+        if(m.route!=None):
+            #print ("route exist")
+            #TODO FIX THIS
+            speed=.5
+            turn=m.route.dif/3.15
         #turn=0
         '''if(distFront<2):
             #print 'turn around!'
@@ -111,7 +116,7 @@ def print_data(data):
         x=1
         #sdads=0
         #turnAround()
-    dataString="navmode "+str(navMode)+" | dist  ("+str(round(distLeft,1))+" "+str(round(distFront,1))+" "+str(round(distRight,1))+") | turn "+str(round(turn,1))
+    dataString="navmode "+str(navMode)+" | dist  ("+str(round(distLeft,1))+" "+str(round(distFront,1))+" "+str(round(distRight,1))+") | turn "+str(round(turn,1))+" | speed "+str(speed)
     #print('navmode ',navMode," | dist  (",round(distLeft,1), round(distFront,1) ,round(distRight,1)," | turn ",round(turn,1))
 
     '''elif reversing != 0:  # REVERSING

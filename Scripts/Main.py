@@ -42,6 +42,7 @@ while not rospy.is_shutdown():
         lrender=rospy.get_time()
         m.render(dt)
         dt=time.time()-st
+        m.updateRoute()
         #print ('render time : ',dt)
     if (rospy.get_time() - lastsave > 8):
         st1=time.time()
