@@ -99,13 +99,15 @@ def print_data(data):
 
     if navMode==0:  # STANDARD CONTROLS
         #kiojdio=2
-        #standardControls(distRight,distLeft,dataFront,distFront)
         if(m.route!=None):
             #print ("route exist")
             #TODO FIX THIS
             x=1
             speed=3
             turn=-m.route.dif/3.15
+        else:
+            standardControls(distRight,distLeft,dataFront,distFront)
+
         #turn=0
         '''if(distFront<2):
             #print 'turn around!'

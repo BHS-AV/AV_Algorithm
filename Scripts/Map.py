@@ -266,8 +266,8 @@ def scanWalls(data,dl,dr,df, datastring):
     points=[]
     subtimes[1]=round(time.time()-st,3)
     nodes = connectNodes(nodes)
-    if(route==None and lastCarState!=None):
-        route=Route()
+    '''if(route==None and lastCarState!=None):
+        route=Route()'''
     if(forceRetrieval):
         retrieveNodes()
     if (time.time() > lt + .5):
@@ -379,7 +379,8 @@ def shouldAddNew(nn, cln):
         if (cln2 != None):
             nang1 = nn.getAngToNode(cln2)
             angdif = getAngDif(nang1, nang2)
-            if (angdif > 3.14 / 1.5):
+            print (str(angdif)+" m : "+str((3.14/1.5)))
+            if (abs(angdif) > 3.14 / 1.5):
                 return False
     return True
 
@@ -1100,7 +1101,7 @@ def cleanNodes(range=20):
     simplify(15)
     #combineClose(20)
     #print(" before archive : "+str(len(nodes))+"-"+str(len(oldNodes)))
-    archiveOldNodes(30)
+    archiveOldNodes(40)
     #print(" after archive : "+str(len(nodes))+"-"+str(len(oldNodes)))
 
     subtimes[3]=round((time.time()-st),3)
