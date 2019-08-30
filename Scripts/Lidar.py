@@ -104,7 +104,7 @@ def print_data(data):
             #print ("route exist")
             #TODO FIX THIS
             x=1
-            speed=1
+            speed=3
             turn=-m.route.dif/3.15
         #turn=0
         '''if(distFront<2):

@@ -1323,21 +1323,21 @@ def getSimilarPos(dl,dr,df):
 
 
 def getAngDif(a1,a2):
-    print (str(a1)+" - "+str(a2))
+    #print (str(a1)+" - "+str(a2))
     adif = a2 - a1
     #if(adif<0):
-    print (adif)
+    #print (adif)
     if(adif<-3.14159):
         adif=adif+(3.14159*2)
     if(adif>3.14159):
         adif=adif=adif-(3.14159*2)
     if (abs(adif) > 3.14159):
         adif = a2 + (3.14159 * 2) - a1
-        print (adif)
+        #print (adif)
     if (abs(adif) > 3.14159):
         adif = a2 - (3.14159 * 4) - a1
-        print (adif)
-    print ("returning "+str(adif))
+        #print (adif)
+    #print ("returning "+str(adif))
     return adif
 
 def getDirFromN1toN2(n1,n2):
