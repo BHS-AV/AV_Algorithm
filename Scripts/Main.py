@@ -24,6 +24,7 @@ lrender=0
 dt=0
 lastsave=rospy.get_time()
 imgnum=0
+lrtime=rospy.get_time()
 import os, shutil
 folder = '/home/racecar/PycharmProjects/AV_Algorithm/Scripts/track'
 for the_file in os.listdir(folder):
@@ -37,12 +38,13 @@ for the_file in os.listdir(folder):
 
 while not rospy.is_shutdown():
     #m.update(Lidar.getOrient())
+    if(rospy.get_time()-lrtime>.5):
+        m.updateRoute()
     if (rospy.get_time()>lrender+1.5):
         st=time.time()
         lrender=rospy.get_time()
         m.render(dt)
         dt=time.time()-st
-        m.updateRoute()
         #print ('render time : ',dt)
     if (rospy.get_time() - lastsave > 8):
         st1=time.time()

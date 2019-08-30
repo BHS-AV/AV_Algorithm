@@ -283,7 +283,8 @@ def scanWalls(data,dl,dr,df, datastring):
         cleanNodes(scanrange)
         updateCarState()
         #findRoutes()
-        hasLooped()
+        if(route==None):
+            hasLooped()
         if (loops > 0 and not lid.isBreaking()):
             if (len(nodes) < 25):
                 retrieveNodes()
@@ -1322,11 +1323,21 @@ def getSimilarPos(dl,dr,df):
 
 
 def getAngDif(a1,a2):
-    adif = abs(a1 - a2)
-    if (adif > 3.14159):
-        adif = abs(a1 + (3.14159 * 2) - a2)
-    if (adif > 3.14159):
-        adif = a1 - (3.14159 * 2) - a2
+    print (str(a1)+" - "+str(a2))
+    adif = a2 - a1
+    #if(adif<0):
+    print (adif)
+    if(adif<-3.14159):
+        adif=adif+(3.14159*2)
+    if(adif>3.14159):
+        adif=adif=adif-(3.14159*2)
+    if (abs(adif) > 3.14159):
+        adif = a2 + (3.14159 * 2) - a1
+        print (adif)
+    if (abs(adif) > 3.14159):
+        adif = a2 - (3.14159 * 4) - a1
+        print (adif)
+    print ("returning "+str(adif))
     return adif
 
 def getDirFromN1toN2(n1,n2):
@@ -1915,10 +1926,12 @@ class Route():
             if(d<cd):
                 cd=d
                 cn=n
+        if(self.rn.index(cn)<len(self.rn)-1):
+            cn=self.rn[self.rn.index(cn)+1]
         a=car.getAngToNode(cn)
         self.dif=getAngDif(a,lastCarState.orient)
 
-        print ("closest is "+str(self.rn.index(cn))+" in dir "+str((a*180/3.14))+" | dif = "+str(self.dif))
+        print ("closest is "+str(self.rn.index(cn))+" in dir "+str((a*180/3.14))+" | dif = "+str((self.dif*180/3.14))+" | car = "+str((lastCarState.orient*180/3.14)))
 
 
 def saveImg(imgnum):

@@ -103,8 +103,9 @@ def print_data(data):
         if(m.route!=None):
             #print ("route exist")
             #TODO FIX THIS
-            speed=.5
-            turn=m.route.dif/3.15
+            x=1
+            speed=1
+            turn=-m.route.dif/3.15
         #turn=0
         '''if(distFront<2):
             #print 'turn around!'
