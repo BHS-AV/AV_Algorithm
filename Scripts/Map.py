@@ -1294,7 +1294,7 @@ def getDataSim(d1,d2):
     p=p/3.0
     return p
 
-def getSimilarPos(dl,dr,df):
+def getSimilarPos(dl,dr,df):#
     global carpath,similarpos
     similarpos=[]
     data=[dl,dr,df]
