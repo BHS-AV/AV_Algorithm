@@ -1906,16 +1906,29 @@ class Route():
     def __init__(self):
         global lastCarState,scale
         self.rn=[]
+        self.generateDemoRoute()
+
+    def generateDemoRoute(self):
+        global lastCarState,scale
+        self.rn=[]
         x1=lastCarState.x/scale
         y1=lastCarState.y/scale
+        o=0
         for i  in range(10):
-            if (i%2==0):
+            o+=.15
+            x1=x1+np.sin(o)*50
+            y1=y1+np.cos(o)*50
+            self.rn.append(Node(Point(x1,y1)))
+
+            '''if (i%2==0):
                 x1+=50
             else:
                 y1+=50
             self.rn.append(Node(Point(x1,y1)))
             if(len(self.rn)>1):
                 self.rn[len(self.rn)-1].tryAddNode(self.rn[len(self.rn)-2])
+                '''
+
     def getClosest(self):
         global lastCarState,scale
         car=Node(Point(lastCarState.x/scale,lastCarState.y/scale))
@@ -1931,7 +1944,7 @@ class Route():
         a=car.getAngToNode(cn)
         self.dif=getAngDif(a,lastCarState.orient)
 
-        print ("closest is "+str(self.rn.index(cn))+" in dir "+str((a*180/3.14))+" | dif = "+str((self.dif*180/3.14))+" | car = "+str((lastCarState.orient*180/3.14)))
+        #print ("closest is "+str(self.rn.index(cn))+" in dir "+str((a*180/3.14))+" | dif = "+str((self.dif*180/3.14))+" | car = "+str((lastCarState.orient*180/3.14)))
 
 
 def saveImg(imgnum):
