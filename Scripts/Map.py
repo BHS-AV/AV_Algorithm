@@ -241,7 +241,7 @@ def scanWalls(data,dl,dr,df, datastring):
             else:
                 if(n1.numcombined<3 and n1.iterationOfCreation<methodIterations[0]-5):
                     n1.combineNodes(n)
-                    n1.iterationOfCreation=n1.iterationOfCreation+1
+                    n1.numcombined=n1.numcombined+1
 
 
         elif(not lid.isBreaking()):
@@ -275,10 +275,10 @@ def scanWalls(data,dl,dr,df, datastring):
     nodes = connectNodes(nodes)
     '''if(route==None and lastCarState!=None):
         route=Route()'''
-    if(forceRetrieval):
-        retrieveNodes()
+    #if(forceRetrieval):
+    #    retrieveNodes()
     if (time.time() > lt + .5):
-
+        lt=time.time()
         if (not lid.isBreaking()):
             updatePath(Point(x / scale, y / scale),dl,dr,df)
         else:
@@ -395,7 +395,7 @@ def shouldAddNew(nn, cln):
         if (cln2 != None):
             nang1 = nn.getAngToNode(cln2)
             angdif = getAngDif(nang1, nang2)
-            print (str(angdif)+" m : "+str((3.14/1.5)))
+            #print (str(angdif)+" m : "+str((3.14/1.5)))
             if (abs(angdif) > 3.14 / 1.5):
                 return False#'''
     return True
@@ -1153,6 +1153,8 @@ def archiveOldNodes(archivetime=25):
     st=time.time()
     #archivetime=25
     for n in nodes:
+        if(lid.isBreaking()):
+            print("i"+str(methodIterations)+" ni"+str(n.iterationOfCreation))
         if(methodIterations[0]-n.iterationOfCreation>archivetime):
             #newest=n.getNewestInNetwork()
             #if(methodIterations[0]-newest.iterationOfCreation>archivetime):
@@ -1502,8 +1504,8 @@ class Node():
 
     def archive(self):
         global nodes, oldNodes
-        if(len(nodes)<3):
-            print "archiving "+str(round(self.p.x))+", "+str(round(self.p.y))+" current len = "+str(len(nodes))
+        #if(len(nodes)<3):
+        print "archiving "+str(round(self.p.x))+", "+str(round(self.p.y))+" current len = "+str(len(nodes))
         if(nodes.__contains__(self)):
             if (len(nodes) < 3):
                 print("Done")
