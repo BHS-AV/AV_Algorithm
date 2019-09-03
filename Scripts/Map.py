@@ -239,7 +239,10 @@ def scanWalls(data,dl,dr,df, datastring):
                     nodes.append(n)
                     addedNodes.append(n)
             else:
-                n1.combineNodes(n)
+                if(n1.numcombined<3 and n1.iterationOfCreation<methodIterations[0]-5):
+                    n1.combineNodes(n)
+                    n1.iterationOfCreation=n1.iterationOfCreation+1
+
 
         elif(not lid.isBreaking()):
             nodes.append(n)
@@ -269,7 +272,7 @@ def scanWalls(data,dl,dr,df, datastring):
     print (datastring)
     points=[]
     subtimes[1]=round(time.time()-st,3)
-    #nodes = connectNodes(nodes)
+    nodes = connectNodes(nodes)
     '''if(route==None and lastCarState!=None):
         route=Route()'''
     if(forceRetrieval):
@@ -1423,6 +1426,7 @@ class Node():
     dir=0
     cn=[]
     iterationOfCreation=0
+    numcombined=0
 
     def __init__(self,p1):
         global methodIterations
@@ -1652,6 +1656,7 @@ class Node():
         x=(self.p.x+n1.p.x)/2.0
         y=(self.p.y+n1.p.y)/2.0
         self.p=Point(x,y)
+
         for n in n1.cn:
             if (not self.cn.__contains__(n) and not self.equals(n)):
                 self.cn.append(n)
