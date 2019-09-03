@@ -19,7 +19,7 @@ y=win.getHeight()/2*scale
 orient=0
 lt=time.time()
 lt2=time.time()-.25
-lscale=80.0
+lscale=100.0
 scantime=0
 refbool=0
 
@@ -259,6 +259,8 @@ def scanWalls(data,dl,dr,df, datastring):
     datastring=datastring+" | routes : "
 
     datastring=datastring+" | N : "+str(len(nodes))+"-"+str(len(oldNodes))
+    if(lid.isBreaking()):
+        datastring=datastring+" | BREAKING"
 
     for dirdata in routedirs:
         datastring=datastring+" "+str(round(dirdata.dir,2))
@@ -358,20 +360,29 @@ def shouldAddNew(nn, cln):
     cln2=None
     cln2d=100000
     nang2 = nn.getAngToNode(cln)
+    maxdist=2*lscale/scale
     if(lid.isBreaking()):return False
     for n in cln.cn:
         if(loops==0):
+            '''dist2n=nn.distToNode(n)
+            if(dist2n<maxdist):
+                nang3=nn.getAngToNode(n)
+                angdif1=getAngDif(nang2,nang3)
+                if(angdif1<3.14/3):
+                    return False'''
+            #'''temp disabled
             dist=n.distToNode(nn)
             if (dist<cln2d):
                 cln2d=dist
-                cln2=n
+                cln2=n#'''
         else:
+            #TODO THIS is Wrong
             nang3=n.getAngToNode(n)
             adif1=getAngDif(nang3+3.142,nang2)
             if(abs(adif1)<3.14/6):
                 return False
 
-
+    #temporarily disabled
     if (loops>0):
         #TODO MAKE BETTER FOR EXPLORING DIFFERENT LOCATIONS
         return False
@@ -381,7 +392,7 @@ def shouldAddNew(nn, cln):
             angdif = getAngDif(nang1, nang2)
             print (str(angdif)+" m : "+str((3.14/1.5)))
             if (abs(angdif) > 3.14 / 1.5):
-                return False
+                return False#'''
     return True
 
 def shouldUTurnNow():

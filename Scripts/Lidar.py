@@ -20,6 +20,7 @@ orient=0
 dataString=""
 speed=0
 x=0
+#lastPrintTime=0
 
 def get_data_array(data, a=0, b=240):
     PPD = 4.5  # points per degree
@@ -142,7 +143,7 @@ def print_data(data):
             lastPathFind = time.time()
             m.findPPaths()
     lastturn=turn
-    Controls.move(x, turn, speed)
+    Controls.move(x, turn, speed,dt)
 
 def turnAround():
     global turn,orient,turnStart,navMode

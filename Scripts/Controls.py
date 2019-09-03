@@ -19,13 +19,15 @@ if __name__=="__main__":
   th = 0
   status = 0 #vesc/ackermann_cmd_mux/input/navigation ackermann_msgs/AckermannDriveStamped
 
-def move(x1, th1, speed=1):
+def move(x1, th1, speed=1,delta=0):
     settings = termios.tcgetattr(sys.stdin)
     #pub = rospy.Publisher('/vesc/ackermann_cmd_mux/input/teleop', AckermannDriveStamped, queue_size=10)
     rospy.init_node('keyop')  # vesc/ackermann_cmd_mux/input/navigation ackermann_msgs/AckermannDriveStamped
     pub = rospy.Publisher('/vesc/ackermann_cmd_mux/input/teleop', AckermannDriveStamped, queue_size=10)
+    #print(delta)
     try:
-        m.move(x1*speed)
+        m.move(x1*speed*delta*50)
+        #m.move(x1*speed)
         msg = AckermannDriveStamped();
         msg.header.stamp = rospy.Time.now();
         msg.header.frame_id = "base_link";
