@@ -238,6 +238,8 @@ def scanWalls(data,dl,dr,df, datastring):
                 #if (True):
                     nodes.append(n)
                     addedNodes.append(n)
+            else:
+                n1.combineNodes(n)
 
         elif(not lid.isBreaking()):
             nodes.append(n)
@@ -252,7 +254,7 @@ def scanWalls(data,dl,dr,df, datastring):
     #for n in nodes:
 
     #findPPaths()
-    findRoutes()
+    #findRoutes()
     '''if(len(routedirs)>1):
         print("multiple routes")'''
         #lid.stop()
@@ -267,7 +269,7 @@ def scanWalls(data,dl,dr,df, datastring):
     print (datastring)
     points=[]
     subtimes[1]=round(time.time()-st,3)
-    nodes = connectNodes(nodes)
+    #nodes = connectNodes(nodes)
     '''if(route==None and lastCarState!=None):
         route=Route()'''
     if(forceRetrieval):
