@@ -223,7 +223,7 @@ def scanWalls(data,dl,dr,df, datastring):
     subtimes[0]=round(time.time()-st,3)
     st=time.time()
 
-
+    #WHYYYY
     mininitdist=.37*lscale/scale
     maxCombineDist=1*lscale/scale
     minCombineDist=.2*lscale/scale
