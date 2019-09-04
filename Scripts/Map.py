@@ -61,13 +61,15 @@ timeOfLastLoop=0
 loops=0
 #shouldUTurn=False
 
+cracks=[]
+
 def update(dir):
     global win,front,c,x,y,orient, oldLocs
     d1=dir/180.0*3.14
     orient=d1
 
 def render(dt):
-    global win,route,phallnodes,front,c,x,y,orient,oldNodes, routedirs,oldLocs,points,allwalls,dirIntersects,scantime,wall,carpath,wallpairs,lastCarState,ppaths,similarpos,methodIterations
+    global win,splits,route,phallnodes,front,c,x,y,orient,oldNodes, routedirs,oldLocs,points,allwalls,dirIntersects,scantime,wall,carpath,wallpairs,lastCarState,ppaths,similarpos,methodIterations
     cx=x
     cy=y
     co=orient
@@ -168,6 +170,11 @@ def render(dt):
         p1.setFill("green")
         p1.draw(win)
 
+    for nl in cracks:
+        l1=Line(nl.n1.p,nl.n2.p)
+        l1.setFill("green")
+        l1.draw(win)
+        print("drawing crack at ",l1)
     for dirdata in routedirs:
         dir=dirdata.dir
         confidence=dirdata.instances
@@ -330,7 +337,8 @@ def retrieveNodes():
     print ("Retrieved "+str(numretrieved)+" Nodes")
 
 def tieUpLooseEnds():
-    global nodes, oldNodes,scale, lscale
+    global nodes, oldNodes,scale, lscale,cracks
+    print("tying up ends")
     singles=[]
     maxd=2*lscale/scale
     #print ("tying up loose ends")
@@ -338,8 +346,24 @@ def tieUpLooseEnds():
         if (len(n.cn)==1):
             singles.append(n)
     for n in singles:
-        cn=getClosestANode(n)
-        print (str(n.p.x)+", "+str(n.p.y))
+        cd=1000000
+        for n1 in singles:
+            close = None
+            if(not n1.equals(n)):
+                d=n.distToNode(n1)
+                if(d<cd):
+                    close=n1
+                    cd=d
+            if(close!=None):
+                print("crack at "+str(n1.p.x)+", "+str(n1.p.y))
+                cracks.append(NodalConnection(n1,close))
+
+
+        #for n1 in oldNodes
+        #cn=getClosestANode(n,40)
+        #print (str(n.p.x)+", "+str(n.p.y))
+
+
 
 def updateCarState():
     global lastCarState,x,y,orient
@@ -347,6 +371,19 @@ def updateCarState():
         lastCarState=carState(x,y,orient)
     else:
         lastCarState.update(x,y,orient)
+
+def routeTo(x,y):
+    global lastCarState,route,carpath
+    g=Node(Point(x,y))
+    cp=None
+    cpd=1000000
+    for p in carpath.path:
+        d=p.distToNode(g)
+        if(d<cpd):
+            g=p
+            cpd=d
+    route=Route()
+    route.rn=[cp,g]
 
 
 def getDistToClosestConnection(nn, cln):
