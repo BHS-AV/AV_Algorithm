@@ -1153,8 +1153,8 @@ def archiveOldNodes(archivetime=25):
     st=time.time()
     #archivetime=25
     for n in nodes:
-        if(lid.isBreaking()):
-            print("i"+str(methodIterations)+" ni"+str(n.iterationOfCreation))
+        #if(lid.isBreaking()):
+        #    print("i"+str(methodIterations)+" ni"+str(n.iterationOfCreation))
         if(methodIterations[0]-n.iterationOfCreation>archivetime):
             #newest=n.getNewestInNetwork()
             #if(methodIterations[0]-newest.iterationOfCreation>archivetime):
