@@ -170,11 +170,16 @@ def render(dt):
         p1.setFill("green")
         p1.draw(win)
 
+    #print("CRACKS : "+str(len(cracks)))
     for nl in cracks:
-        l1=Line(nl.n1.p,nl.n2.p)
-        l1.setFill("green")
-        l1.draw(win)
-        print("drawing crack at ",l1)
+        l3=Line(Point(nl.n1.p.x,nl.n1.p.y),Point(nl.n2.p.x,nl.n2.p.y))
+        p1=Circle(l3.getCenter(),5)
+        p1.setFill("red")
+        p1.draw(win)
+
+        l3.setFill("green")
+        l3.draw(win)
+        #print("drawing crack at ",l3)
     for dirdata in routedirs:
         dir=dirdata.dir
         confidence=dirdata.instances
@@ -299,9 +304,9 @@ def scanWalls(data,dl,dr,df, datastring):
         #findRoutes()
         if(route==None):
             hasLooped()
-        if (loops > 0 and not lid.isBreaking()):
-            if (len(nodes) < 25):
-                retrieveNodes()
+        #if (loops > 0 and not lid.isBreaking()):
+        #    if (len(nodes) < 25):
+        retrieveNodes()
         methodIterations[1]=methodIterations[1]+1
 
     methodIterations[0]=methodIterations[0]+1
@@ -327,6 +332,7 @@ def retrieveNodes():
 
                 #TODO ADD THIS TO RETRIEVE NODES
                 s=0
+    if(clsp==None):return
     clspt=clsp.iterationOfCreation
     itermin=clspt-30
     itermax=clspt+30
@@ -340,25 +346,36 @@ def tieUpLooseEnds():
     global nodes, oldNodes,scale, lscale,cracks
     print("tying up ends")
     singles=[]
-    maxd=2*lscale/scale
+    maxd=1.5*lscale/scale
     #print ("tying up loose ends")
     for n in oldNodes:
         if (len(n.cn)==1):
             singles.append(n)
+    cracks=[]
     for n in singles:
         cd=1000000
+        close = None
         for n1 in singles:
-            close = None
             if(not n1.equals(n)):
                 d=n.distToNode(n1)
                 if(d<cd):
                     close=n1
                     cd=d
-            if(close!=None):
-                print("crack at "+str(n1.p.x)+", "+str(n1.p.y))
-                cracks.append(NodalConnection(n1,close))
+        if (close != None):
+            print("crack at " + str(n1.p.x) + ", " + str(n1.p.y))
+            cracks.append(NodalConnection(n, close))
+    toremove=[]
+    for c in cracks:
+        d=c.n1.distToNode(c.n2)
+        if(d<maxd):
+            c.n1.tryAddNode(c.n2)
+            c.n2.tryAddNode(c.n1)
+            toremove.append(c)
+        #TODO FING CLOSEST CAR PATH AND GET DISTANCE, use this to identify if a crack is off the track, implying it could be a hall
+        clcp=getClosestCarPath(c.n1,c.n2)
 
-
+    for r in toremove:
+        cracks.remove(r)
         #for n1 in oldNodes
         #cn=getClosestANode(n,40)
         #print (str(n.p.x)+", "+str(n.p.y))
