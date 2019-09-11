@@ -347,6 +347,7 @@ def retrieveNodes():
 def tieUpLooseEnds():
     global nodes, oldNodes,scale, lscale,cracks
     print("tying up ends")
+    ##TODO REMOVE PARRALELS
     singles=[]
     maxd=1.5*lscale/scale
     #print ("tying up loose ends")
@@ -367,17 +368,27 @@ def tieUpLooseEnds():
             print("crack at " + str(n1.p.x) + ", " + str(n1.p.y))
             cracks.append(NodalConnection(n, close))
     toremove=[]
+    toremoven=[]
     for c in cracks:
         d=c.n1.distToNode(c.n2)
         if(d<maxd):
             c.n1.tryAddNode(c.n2)
             c.n2.tryAddNode(c.n1)
             toremove.append(c)
+
+        if(c.n1.cn.__contains__(c.n2)):
+            toremove.append(c)
+            toremoven.append(c.n1)
+            toremoven.append(c.n2)
         #TODO FING CLOSEST CAR PATH AND GET DISTANCE, use this to identify if a crack is off the track, implying it could be a hall
         clcp=getClosestCarPath(c.n1,c.n2)
 
+    for n in toremoven:
+        oldNodes.remove(n)
     for r in toremove:
-        cracks.remove(r)
+        #TODO ACTUALLY REMOVE THIS, IT ONLY DOESNT BECAUSE TROUBLESHOOTING
+        s=0
+        #cracks.remove(r)
         #for n1 in oldNodes
         #cn=getClosestANode(n,40)
         #print (str(n.p.x)+", "+str(n.p.y))
