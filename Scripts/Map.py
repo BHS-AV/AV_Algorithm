@@ -289,10 +289,11 @@ def scanWalls(data,dl,dr,df, datastring):
         route=Route()'''
     #if(forceRetrieval):
     #    retrieveNodes()
-    if (time.time() > lt + .5):
+    if (time.time() > lt + .5 or lid.isBreaking()):
         lt=time.time()
         if (not lid.isBreaking()):
             updatePath(Point(x / scale, y / scale),dl,dr,df)
+            retrieveNodes()
         else:
             removeMatrices()
             if(len(nodes)==0):
@@ -306,7 +307,7 @@ def scanWalls(data,dl,dr,df, datastring):
             hasLooped()
         #if (loops > 0 and not lid.isBreaking()):
         #    if (len(nodes) < 25):
-        retrieveNodes()
+
         methodIterations[1]=methodIterations[1]+1
 
     methodIterations[0]=methodIterations[0]+1
@@ -340,7 +341,8 @@ def retrieveNodes():
         if(n.iterationOfCreation>itermin and n.iterationOfCreation<itermax):
             n.retrieve()
             numretrieved=numretrieved+1
-    print ("Retrieved "+str(numretrieved)+" Nodes")
+    if(numretrieved!=0):
+        print ("Retrieved "+str(numretrieved)+" Nodes")
 
 def tieUpLooseEnds():
     global nodes, oldNodes,scale, lscale,cracks
