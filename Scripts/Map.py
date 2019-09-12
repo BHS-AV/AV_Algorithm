@@ -313,6 +313,47 @@ def scanWalls(data,dl,dr,df, datastring):
     methodIterations[0]=methodIterations[0]+1
     scantime = getSubTimes(subtimes)
 
+def combineParralels():
+    globals()
+    maxdist=5*lscale/scale
+    prls=[]
+    for n in oldNodes:
+        near1=getNearbyNodes(n,maxdist)
+        for cn in n.cn:
+            a=n.getAngToNode(cn)
+            for n1 in near1:
+                for cn1 in n1.cn:
+                    a1 = n1.getAngToNode(cn1)
+                    if (abs(getAngDif(a1, a)) < 3.14 / 5 or abs(getAngDif(a1, a + 3.14)) < 3.14 / 5)
+                        prls.append([NodalConnection(n,cn),NodalConnection(n1,cn1)])
+            '''a=n.getAngToNode(cn)
+            for n1 in nodes:
+                if((not n1.equals(n) )and (not n1.equals(cn))):
+                    for cn2 in n1.cn:
+                        if((not cn2.equals(n)) and (not cn2.equals(cn)))
+                            a1=n1.getAngToNode(cn2)
+                            if(getAngDif(a1,a)<3.14/5 or getAngDif(a1,a+3.14)<3.14/5 )
+            '''
+    for set in prls:
+        if(areParralel()):
+           a=1
+            #s=1
+            #if
+
+def areParralel(nc1,nc2):
+    n1=nc1.getCenter()
+    n2=nc2.getCenter()
+
+
+def getNearbyNodes(n, maxd):
+    globals()
+    nearby=[]
+    for n1 in oldNodes:
+        if(not n1.equals(n)):
+            d=n.distToNode(n1)
+            if(d<maxd):
+                nearby.append(n1)
+    return nearby
 
 def retrieveNodes():
     global nodes, oldNodes,carpath,scale,lscale,lastCarState
@@ -1760,6 +1801,8 @@ class NodalConnection():
     def __init__(self,n1,n2):
         self.n1=n1
         self.n2=n2
+    def getCenter(self):
+        return Node(Point((self.n1.p.x+self.n2.p.x)/2,(self.n1.p.y+self.n2.p.y)/2))
     def doesStillExist(self):
         global nodes
         if (nodes.__contains__(self.n1) and nodes.__contains__(self.n2)):
