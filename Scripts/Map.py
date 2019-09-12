@@ -343,7 +343,14 @@ def combineParralels():
 def areParralel(nc1,nc2):
     n1=nc1.getCenter()
     n2=nc2.getCenter()
+    center=Node(Point((n1.p.x+n2.p.x)/2,(n1.p.y+n2.p.y)/2))
+    a1=nc1.n1.getAng
 
+def rotatePoint(p,c,o):
+    rad=p.distToNode(c)
+    a=c.getAngToNode(p)+o
+    p1=Point(c.p.x+(rad*np.cos(a)),c.p.y+(rad*np.sin(a)))
+    return p1
 
 def getNearbyNodes(n, maxd):
     globals()
