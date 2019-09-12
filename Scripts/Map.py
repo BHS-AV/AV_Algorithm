@@ -53,6 +53,7 @@ routedirs=[]
 dirIntersects=[]
 lastCarState=None
 forceRetrieval=False
+parallels=[]
 
 
 route=None
@@ -69,7 +70,7 @@ def update(dir):
     orient=d1
 
 def render(dt):
-    global win,splits,route,phallnodes,front,c,x,y,orient,oldNodes, routedirs,oldLocs,points,allwalls,dirIntersects,scantime,wall,carpath,wallpairs,lastCarState,ppaths,similarpos,methodIterations
+    global win,splits,parallels,route,phallnodes,front,c,x,y,orient,oldNodes, routedirs,oldLocs,points,allwalls,dirIntersects,scantime,wall,carpath,wallpairs,lastCarState,ppaths,similarpos,methodIterations
     cx=x
     cy=y
     co=orient
@@ -180,6 +181,13 @@ def render(dt):
         l3.setFill("green")
         l3.draw(win)
         #print("drawing crack at ",l3)
+
+    for nl in parallels:
+        l3 = Line(Point(nl.n1.p.x, nl.n1.p.y), Point(nl.n2.p.x, nl.n2.p.y))
+        l3.setFill("blue")
+        l3.draw(win)
+
+
     for dirdata in routedirs:
         dir=dirdata.dir
         confidence=dirdata.instances
@@ -313,9 +321,9 @@ def scanWalls(data,dl,dr,df, datastring):
     methodIterations[0]=methodIterations[0]+1
     scantime = getSubTimes(subtimes)
 
-def combineParralels():
+def combineParallels():
     globals()
-    maxdist=5*lscale/scale
+    maxdist=1*lscale/scale
     prls=[]
     for n in oldNodes:
         near1=getNearbyNodes(n,maxdist)
@@ -335,16 +343,49 @@ def combineParralels():
                             if(getAngDif(a1,a)<3.14/5 or getAngDif(a1,a+3.14)<3.14/5 )
             '''
     for set in prls:
-        if(areParralel()):
-           a=1
-            #s=1
-            #if
+        if(areParallel(set[0],set[1])):
+            parallels.append(set[0])
+            parallels.append(set[1])
 
-def areParralel(nc1,nc2):
+
+def areParallel(nc1,nc2):
     n1=nc1.getCenter()
     n2=nc2.getCenter()
     center=Node(Point((n1.p.x+n2.p.x)/2,(n1.p.y+n2.p.y)/2))
-    a1=nc1.n1.getAng
+    orient=getAverageLineAng(nc1,nc2)
+    rp1=rotatePoint(nc1.n1,center,orient)
+    rp2=rotatePoint(nc1.n2,center,orient)
+    rp3=rotatePoint(nc2.n1,center,orient)
+    rp4=rotatePoint(nc2.n2,center,orient)
+    if(rp1.x>rp2.x):
+        rp5=rp2
+        rp2=rp1
+        rp1=rp5
+    if(rp3.x>rp4.x):
+        rp5=rp4
+        rp4=rp3
+        rp3=rp5
+    if(rp1.x<rp3.x and rp3.x<rp2.x):
+        return True
+    if(rp1.x<rp4.x and rp3.x<rp2.x):
+        return True
+
+
+
+def getAverageLineAng(nc1,nc2):
+    a00=nc1.n1.getAngToNode(nc1.n2)
+    a01=nc1.n2.getAngToNode(nc1.n1)
+    a10=nc2.n1.getAngToNode(nc2.n2)
+    angdif=getAngDif(a00,a10)
+    angdif1=getAngDif(a01,a10)
+    a=0
+    if(abs(angdif)>abs(angdif1)):
+        a=a01+(angdif1/2)
+    else:
+        a=a00+(angdif/2)
+    return a
+    #a01=nc2.n2.getAngToNode(nc2.n1)
+
 
 def rotatePoint(p,c,o):
     rad=p.distToNode(c)
@@ -440,7 +481,7 @@ def tieUpLooseEnds():
         #for n1 in oldNodes
         #cn=getClosestANode(n,40)
         #print (str(n.p.x)+", "+str(n.p.y))
-
+    combineParallels()
 
 
 def updateCarState():
