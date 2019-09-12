@@ -324,7 +324,7 @@ def combineParralels():
             for n1 in near1:
                 for cn1 in n1.cn:
                     a1 = n1.getAngToNode(cn1)
-                    if (abs(getAngDif(a1, a)) < 3.14 / 5 or abs(getAngDif(a1, a + 3.14)) < 3.14 / 5)
+                    if (abs(getAngDif(a1, a)) < 3.14 / 5 or abs(getAngDif(a1, a + 3.14)) < 3.14 / 5):
                         prls.append([NodalConnection(n,cn),NodalConnection(n1,cn1)])
             '''a=n.getAngToNode(cn)
             for n1 in nodes:
