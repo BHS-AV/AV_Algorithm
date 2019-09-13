@@ -328,6 +328,20 @@ def combineParallels():
     maxwidth=1*lscale/scale
     prls=[]
     parallels=[]
+    maxppathtol=1.5*lscale/scale
+    pathstoremove=[]
+    for path in ppaths:
+        psize=path[0].distToNode(path[1])
+        if(psize<maxppathtol):
+            pathstoremove.append(path)
+
+    for path in pathstoremove:
+        if(oldNodes.__contains__(path[1])):
+            path[0].combineNodes(path[1])
+            #print("combining ",path[0].p, " and ", path[1].p)
+            oldNodes.remove(path[1])
+            ppaths.remove(path)
+
     for n in oldNodes:
         near1=getNearbyNodes(n,maxdist)
         for cn in n.cn:
@@ -444,7 +458,7 @@ def retrieveNodes():
         print ("Retrieved "+str(numretrieved)+" Nodes")
 
 def tieUpLooseEnds():
-    global nodes, oldNodes,scale, lscale,cracks
+    global nodes, oldNodes,scale, lscale,cracks,phalls
     print("tying up ends")
     ##TODO REMOVE PARRALELS
     singles=[]
@@ -464,7 +478,7 @@ def tieUpLooseEnds():
                     close=n1
                     cd=d
         if (close != None):
-            print("crack at " + str(n1.p.x) + ", " + str(n1.p.y))
+            #print("crack at " + str(n1.p.x) + ", " + str(n1.p.y))
             cracks.append(NodalConnection(n, close))
     toremove=[]
     toremoven=[]
