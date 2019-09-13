@@ -325,7 +325,7 @@ def combineParallels():
     global parallels
     globals()
     maxdist=10*lscale/scale
-    maxwidth=3*lscale/scale
+    maxwidth=1*lscale/scale
     prls=[]
     parallels=[]
     for n in oldNodes:
@@ -333,10 +333,13 @@ def combineParallels():
         for cn in n.cn:
             a=n.getAngToNode(cn)
             for n1 in near1:
-                for cn1 in n1.cn:
-                    a1 = n1.getAngToNode(cn1)
-                    if (abs(getAngDif(a1, a)) < 3.14 / 5 or abs(getAngDif(a1, a + 3.14)) < 3.14 / 8):
-                        prls.append([NodalConnection(n,cn),NodalConnection(n1,cn1)])
+                if(not n1.equals(cn) and not n1.equals(n)):
+                    for cn1 in n1.cn:
+                        if (not cn1.equals(cn) and not cn1.equals(n)):
+
+                            a1 = n1.getAngToNode(cn1)
+                            if (abs(getAngDif(a1, a)) < 3.14 / 6 or abs(getAngDif(a1, a + 3.14)) < 3.14 / 6):
+                                prls.append([NodalConnection(n,cn),NodalConnection(n1,cn1)])
             '''a=n.getAngToNode(cn)
             for n1 in nodes:
                 if((not n1.equals(n) )and (not n1.equals(cn))):
@@ -1668,13 +1671,13 @@ class Node():
     def archive(self):
         global nodes, oldNodes
         #if(len(nodes)<3):
-        print "archiving "+str(round(self.p.x))+", "+str(round(self.p.y))+" current len = "+str(len(nodes))
+        #print "archiving "+str(round(self.p.x))+", "+str(round(self.p.y))+" current len = "+str(len(nodes))
         if(nodes.__contains__(self)):
-            if (len(nodes) < 3):
-                print("Done")
+            #if (len(nodes) < 3):
+            #    print("Done")
             nodes.remove(self)
-            if (len(nodes) < 3):
-                print("new size = "+str(len(nodes)))
+            #if (len(nodes) < 3):
+            #    print("new size = "+str(len(nodes)))
             oldNodes.append(self)
             #for n in self.cn:
             #    n.archive()
