@@ -61,7 +61,7 @@ goal=None
 timeOfLastLoop=0
 loops=0
 #shouldUTurn=False
-
+finishTimer=0
 cracks=[]
 
 def update(dir):
@@ -160,11 +160,12 @@ def render(dt):
 
     if(route!=None):
         for p in route.rn:
-            p1 = Circle(p.p, 5)
-            p1.setFill("green")
-            p1.draw(win)
+            #p1 = Circle(p.p, 5)
+            #p1.setFill("red")
+            #p1.draw(win)
             lines = p.getLines()
             for l in lines:
+                l.setFill("red")
                 l.draw(win)
     for p in similarpos:
         p1=Circle(p.p,5)
@@ -221,7 +222,7 @@ def render(dt):
     front.draw(win)
 
 def scanWalls(data,dl,dr,df, datastring):
-    global orient,route,forceRetrieval,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes, scale, lscale,lastCarState, nodes, refbool, lastCorrection, haslapped
+    global orient,finishTimer,route,cracks,forceRetrieval,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes, scale, lscale,lastCarState, nodes, refbool, lastCorrection, haslapped
     if (orient==0):return
     samples=30
     st=time.time()
@@ -286,6 +287,8 @@ def scanWalls(data,dl,dr,df, datastring):
     datastring=datastring+" | N : "+str(len(nodes))+"-"+str(len(oldNodes))
     if(lid.isBreaking()):
         datastring=datastring+" | BREAKING"
+    if(len(cracks)>0):
+        datastring=datastring+" | cracks : "+str(len(cracks))
 
     for dirdata in routedirs:
         datastring=datastring+" "+str(round(dirdata.dir,2))
@@ -306,6 +309,10 @@ def scanWalls(data,dl,dr,df, datastring):
             removeMatrices()
             if(len(nodes)==0):
                 tieUpLooseEnds()
+                finishTimer=finishTimer+1
+                if(finishTimer>5 and len(cracks)>=1 and route==None):
+                    routeToCrack()
+
         if(time.time()-lastCorrection>10):
             getSimilarPos(dl,dr,df)
         cleanNodes(scanrange)
@@ -320,6 +327,13 @@ def scanWalls(data,dl,dr,df, datastring):
 
     methodIterations[0]=methodIterations[0]+1
     scantime = getSubTimes(subtimes)
+
+def routeToCrack():
+    globals()
+    print("ROUTING TO CRACK")
+    cr1=cracks[0]
+    crp1=Point((cr1.n1.p.x+cr1.n2.p.x)/2,(cr1.n1.p.y+cr1.n2.p.y)/2)
+    routeTo(crp1.x,crp1.y)
 
 def combineParallels():
     global parallels
@@ -526,7 +540,13 @@ def routeTo(x,y):
             g=p
             cpd=d
     route=Route()
-    route.rn=[cp,g]
+    route.create()
+    route.addPos(g)
+    #n=Node(Point(lastCarState.x,lastCarState.y))
+    #n.tryAddNode(g)
+    #g.tryAddNode(n)
+    #route.rn=[n,g]
+
 
 
 def getDistToClosestConnection(nn, cln):
@@ -2110,6 +2130,19 @@ class Route():
         global lastCarState,scale
         self.rn=[]
         self.generateDemoRoute()
+
+    def create(self):
+        global lastCarState,scale
+        self.rn=[]
+        x1=lastCarState.x/scale
+        y1=lastCarState.y/scale
+        self.rn.append(Node(Point(x1, y1)))
+
+    def addPos(self,newnode):
+        last=len(self.rn)-1
+        self.rn[last].tryAddNode(newnode)
+        newnode.tryAddNode(self.rn[last])
+        self.rn.append(newnode)
 
     def generateDemoRoute(self):
         global lastCarState,scale
