@@ -19,7 +19,7 @@ y=win.getHeight()/2*scale
 orient=0
 lt=time.time()
 lt2=time.time()-.25
-lscale=80.0
+lscale=100.0
 scantime=0
 refbool=0
 
@@ -53,6 +53,7 @@ routedirs=[]
 dirIntersects=[]
 lastCarState=None
 forceRetrieval=False
+parallels=[]
 
 
 route=None
@@ -60,6 +61,8 @@ goal=None
 timeOfLastLoop=0
 loops=0
 #shouldUTurn=False
+finishTimer=0
+cracks=[]
 
 def update(dir):
     global win,front,c,x,y,orient, oldLocs
@@ -67,7 +70,7 @@ def update(dir):
     orient=d1
 
 def render(dt):
-    global win,route,phallnodes,front,c,x,y,orient,oldNodes, routedirs,oldLocs,points,allwalls,dirIntersects,scantime,wall,carpath,wallpairs,lastCarState,ppaths,similarpos,methodIterations
+    global win,splits,parallels,route,phallnodes,front,c,x,y,orient,oldNodes, routedirs,oldLocs,points,allwalls,dirIntersects,scantime,wall,carpath,wallpairs,lastCarState,ppaths,similarpos,methodIterations
     cx=x
     cy=y
     co=orient
@@ -157,16 +160,34 @@ def render(dt):
 
     if(route!=None):
         for p in route.rn:
-            p1 = Circle(p.p, 5)
-            p1.setFill("green")
-            p1.draw(win)
+            #p1 = Circle(p.p, 5)
+            #p1.setFill("red")
+            #p1.draw(win)
             lines = p.getLines()
             for l in lines:
+                l.setFill("red")
                 l.draw(win)
     for p in similarpos:
         p1=Circle(p.p,5)
         p1.setFill("green")
         p1.draw(win)
+
+    #print("CRACKS : "+str(len(cracks)))
+    for nl in cracks:
+        l3=Line(Point(nl.n1.p.x,nl.n1.p.y),Point(nl.n2.p.x,nl.n2.p.y))
+        p1=Circle(l3.getCenter(),5)
+        p1.setFill("red")
+        p1.draw(win)
+
+        l3.setFill("green")
+        l3.draw(win)
+        #print("drawing crack at ",l3)
+
+    for nl in parallels:
+        l3 = Line(Point(nl.n1.p.x, nl.n1.p.y), Point(nl.n2.p.x, nl.n2.p.y))
+        l3.setFill("blue")
+        l3.draw(win)
+
 
     for dirdata in routedirs:
         dir=dirdata.dir
@@ -201,7 +222,7 @@ def render(dt):
     front.draw(win)
 
 def scanWalls(data,dl,dr,df, datastring):
-    global orient,route,forceRetrieval,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes, scale, lscale,lastCarState, nodes, refbool, lastCorrection, haslapped
+    global orient,finishTimer,route,cracks,forceRetrieval,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes, scale, lscale,lastCarState, nodes, refbool, lastCorrection, haslapped
     if (orient==0):return
     samples=30
     st=time.time()
@@ -223,7 +244,7 @@ def scanWalls(data,dl,dr,df, datastring):
     subtimes[0]=round(time.time()-st,3)
     st=time.time()
 
-
+    #WHYYYY
     mininitdist=.37*lscale/scale
     maxCombineDist=1*lscale/scale
     minCombineDist=.2*lscale/scale
@@ -238,6 +259,11 @@ def scanWalls(data,dl,dr,df, datastring):
                 #if (True):
                     nodes.append(n)
                     addedNodes.append(n)
+            else:
+                if(n1.numcombined<3 and n1.iterationOfCreation<methodIterations[0]-5):
+                    n1.combineNodes(n)
+                    n1.numcombined=n1.numcombined+1
+
 
         elif(not lid.isBreaking()):
             nodes.append(n)
@@ -252,13 +278,17 @@ def scanWalls(data,dl,dr,df, datastring):
     #for n in nodes:
 
     #findPPaths()
-    findRoutes()
+    #findRoutes()
     '''if(len(routedirs)>1):
         print("multiple routes")'''
         #lid.stop()
     datastring=datastring+" | routes : "
 
     datastring=datastring+" | N : "+str(len(nodes))+"-"+str(len(oldNodes))
+    if(lid.isBreaking()):
+        datastring=datastring+" | BREAKING"
+    if(len(cracks)>0):
+        datastring=datastring+" | cracks : "+str(len(cracks))
 
     for dirdata in routedirs:
         datastring=datastring+" "+str(round(dirdata.dir,2))
@@ -268,16 +298,21 @@ def scanWalls(data,dl,dr,df, datastring):
     nodes = connectNodes(nodes)
     '''if(route==None and lastCarState!=None):
         route=Route()'''
-    if(forceRetrieval):
-        retrieveNodes()
-    if (time.time() > lt + .5):
-
+    #if(forceRetrieval):
+    #    retrieveNodes()
+    if (time.time() > lt + .5 or lid.isBreaking()):
+        lt=time.time()
         if (not lid.isBreaking()):
             updatePath(Point(x / scale, y / scale),dl,dr,df)
+            retrieveNodes()
         else:
             removeMatrices()
             if(len(nodes)==0):
                 tieUpLooseEnds()
+                finishTimer=finishTimer+1
+                if(finishTimer>5 and len(cracks)>=1 and route==None):
+                    routeToCrack()
+
         if(time.time()-lastCorrection>10):
             getSimilarPos(dl,dr,df)
         cleanNodes(scanrange)
@@ -285,14 +320,126 @@ def scanWalls(data,dl,dr,df, datastring):
         #findRoutes()
         if(route==None):
             hasLooped()
-        if (loops > 0 and not lid.isBreaking()):
-            if (len(nodes) < 25):
-                retrieveNodes()
+        #if (loops > 0 and not lid.isBreaking()):
+        #    if (len(nodes) < 25):
+
         methodIterations[1]=methodIterations[1]+1
 
     methodIterations[0]=methodIterations[0]+1
     scantime = getSubTimes(subtimes)
 
+def routeToCrack():
+    globals()
+    print("ROUTING TO CRACK")
+    cr1=cracks[0]
+    crp1=Point((cr1.n1.p.x+cr1.n2.p.x)/2,(cr1.n1.p.y+cr1.n2.p.y)/2)
+    routeTo(crp1.x,crp1.y)
+
+def combineParallels():
+    global parallels
+    globals()
+    maxdist=10*lscale/scale
+    maxwidth=1*lscale/scale
+    prls=[]
+    parallels=[]
+    maxppathtol=1.5*lscale/scale
+    pathstoremove=[]
+    for path in ppaths:
+        psize=path[0].distToNode(path[1])
+        if(psize<maxppathtol):
+            pathstoremove.append(path)
+
+    for path in pathstoremove:
+        if(oldNodes.__contains__(path[1])):
+            path[0].combineNodes(path[1])
+            #print("combining ",path[0].p, " and ", path[1].p)
+            oldNodes.remove(path[1])
+            ppaths.remove(path)
+
+    for n in oldNodes:
+        near1=getNearbyNodes(n,maxdist)
+        for cn in n.cn:
+            a=n.getAngToNode(cn)
+            for n1 in near1:
+                if(not n1.equals(cn) and not n1.equals(n)):
+                    for cn1 in n1.cn:
+                        if (not cn1.equals(cn) and not cn1.equals(n)):
+
+                            a1 = n1.getAngToNode(cn1)
+                            if (abs(getAngDif(a1, a)) < 3.14 / 6 or abs(getAngDif(a1, a + 3.14)) < 3.14 / 6):
+                                prls.append([NodalConnection(n,cn),NodalConnection(n1,cn1)])
+            '''a=n.getAngToNode(cn)
+            for n1 in nodes:
+                if((not n1.equals(n) )and (not n1.equals(cn))):
+                    for cn2 in n1.cn:
+                        if((not cn2.equals(n)) and (not cn2.equals(cn)))
+                            a1=n1.getAngToNode(cn2)
+                            if(getAngDif(a1,a)<3.14/5 or getAngDif(a1,a+3.14)<3.14/5 )
+            '''
+
+    for set in prls:
+        if(areParallel(set[0],set[1],maxwidth)):
+            parallels.append(set[0])
+            parallels.append(set[1])
+
+
+def areParallel(nc1,nc2,maxd):
+    n1=nc1.getCenter()
+    n2=nc2.getCenter()
+    center=Node(Point((n1.p.x+n2.p.x)/2,(n1.p.y+n2.p.y)/2))
+    orient=getAverageLineAng(nc1,nc2)
+    rp1=rotatePoint(nc1.n1,center,orient)
+    rp2=rotatePoint(nc1.n2,center,orient)
+    rp3=rotatePoint(nc2.n1,center,orient)
+    rp4=rotatePoint(nc2.n2,center,orient)
+    if(rp1.x>rp2.x):
+        rp5=rp2
+        rp2=rp1
+        rp1=rp5
+    if(rp3.x>rp4.x):
+        rp5=rp4
+        rp4=rp3
+        rp3=rp5
+    ry1=(rp1.y+rp2.y)/2
+    ry2=(rp3.y+rp4.y)/2
+    if(abs(ry1-ry2)>maxd):return False
+    if(rp1.x+.1<rp3.x and rp3.x+.1<rp2.x):
+        return True
+    if(rp1.x+.1<rp4.x and rp3.x+.1<rp2.x):
+        return True
+
+
+
+def getAverageLineAng(nc1,nc2):
+    a00=nc1.n1.getAngToNode(nc1.n2)
+    a01=nc1.n2.getAngToNode(nc1.n1)
+    a10=nc2.n1.getAngToNode(nc2.n2)
+    angdif=getAngDif(a00,a10)
+    angdif1=getAngDif(a01,a10)
+    a=0
+    if(abs(angdif)>abs(angdif1)):
+        a=a01+(angdif1/2)
+    else:
+        a=a00+(angdif/2)
+    return a
+    #a01=nc2.n2.getAngToNode(nc2.n1)
+
+
+def rotatePoint(p,c,o):
+    rad=p.distToNode(c)
+    a=c.getAngToNode(p)+o
+    p1=Point(c.p.x+(rad*np.cos(a)),c.p.y+(rad*np.sin(a)))
+    return p1
+
+def getNearbyNodes(n, maxd):
+    globals()
+    nearby=[]
+    for n1 in oldNodes:
+        if(not n1.equals(n)):
+            d=n.distToNode(n1)
+            if(d<maxd):
+                nearby.append(n1)
+    return nearby
 
 def retrieveNodes():
     global nodes, oldNodes,carpath,scale,lscale,lastCarState
@@ -313,6 +460,7 @@ def retrieveNodes():
 
                 #TODO ADD THIS TO RETRIEVE NODES
                 s=0
+    if(clsp==None or clsd>maxd):return
     clspt=clsp.iterationOfCreation
     itermin=clspt-30
     itermax=clspt+30
@@ -320,19 +468,59 @@ def retrieveNodes():
         if(n.iterationOfCreation>itermin and n.iterationOfCreation<itermax):
             n.retrieve()
             numretrieved=numretrieved+1
-    print ("Retrieved "+str(numretrieved)+" Nodes")
+    if(numretrieved!=0):
+        print ("Retrieved "+str(numretrieved)+" Nodes")
 
 def tieUpLooseEnds():
-    global nodes, oldNodes,scale, lscale
+    global nodes, oldNodes,scale, lscale,cracks,phalls
+    print("tying up ends")
+    ##TODO REMOVE PARRALELS
     singles=[]
-    maxd=2*lscale/scale
+    maxd=1.5*lscale/scale
     #print ("tying up loose ends")
     for n in oldNodes:
         if (len(n.cn)==1):
             singles.append(n)
+    cracks=[]
     for n in singles:
-        cn=getClosestANode(n)
-        print (str(n.p.x)+", "+str(n.p.y))
+        cd=1000000
+        close = None
+        for n1 in singles:
+            if(not n1.equals(n)):
+                d=n.distToNode(n1)
+                if(d<cd):
+                    close=n1
+                    cd=d
+        if (close != None):
+            #print("crack at " + str(n1.p.x) + ", " + str(n1.p.y))
+            cracks.append(NodalConnection(n, close))
+    toremove=[]
+    toremoven=[]
+    for c in cracks:
+        d=c.n1.distToNode(c.n2)
+        if(d<maxd):
+            c.n1.tryAddNode(c.n2)
+            c.n2.tryAddNode(c.n1)
+            toremove.append(c)
+
+        if(c.n1.cn.__contains__(c.n2)):
+            toremove.append(c)
+            toremoven.append(c.n1)
+            toremoven.append(c.n2)
+        #TODO FING CLOSEST CAR PATH AND GET DISTANCE, use this to identify if a crack is off the track, implying it could be a hall
+        clcp=getClosestCarPath(c.n1,c.n2)
+
+    for n in toremoven:
+        oldNodes.remove(n)
+    for r in toremove:
+        #TODO ACTUALLY REMOVE THIS, IT ONLY DOESNT BECAUSE TROUBLESHOOTING
+        s=0
+        #cracks.remove(r)
+        #for n1 in oldNodes
+        #cn=getClosestANode(n,40)
+        #print (str(n.p.x)+", "+str(n.p.y))
+    combineParallels()
+
 
 def updateCarState():
     global lastCarState,x,y,orient
@@ -340,6 +528,25 @@ def updateCarState():
         lastCarState=carState(x,y,orient)
     else:
         lastCarState.update(x,y,orient)
+
+def routeTo(x,y):
+    global lastCarState,route,carpath
+    g=Node(Point(x,y))
+    cp=None
+    cpd=1000000
+    for p in carpath.path:
+        d=p.distToNode(g)
+        if(d<cpd):
+            g=p
+            cpd=d
+    route=Route()
+    route.create()
+    route.addPos(g)
+    #n=Node(Point(lastCarState.x,lastCarState.y))
+    #n.tryAddNode(g)
+    #g.tryAddNode(n)
+    #route.rn=[n,g]
+
 
 
 def getDistToClosestConnection(nn, cln):
@@ -358,20 +565,29 @@ def shouldAddNew(nn, cln):
     cln2=None
     cln2d=100000
     nang2 = nn.getAngToNode(cln)
+    maxdist=2*lscale/scale
     if(lid.isBreaking()):return False
     for n in cln.cn:
         if(loops==0):
+            '''dist2n=nn.distToNode(n)
+            if(dist2n<maxdist):
+                nang3=nn.getAngToNode(n)
+                angdif1=getAngDif(nang2,nang3)
+                if(angdif1<3.14/3):
+                    return False'''
+            #'''temp disabled
             dist=n.distToNode(nn)
             if (dist<cln2d):
                 cln2d=dist
-                cln2=n
+                cln2=n#'''
         else:
+            #TODO THIS is Wrong
             nang3=n.getAngToNode(n)
             adif1=getAngDif(nang3+3.142,nang2)
             if(abs(adif1)<3.14/6):
                 return False
 
-
+    #temporarily disabled
     if (loops>0):
         #TODO MAKE BETTER FOR EXPLORING DIFFERENT LOCATIONS
         return False
@@ -379,9 +595,9 @@ def shouldAddNew(nn, cln):
         if (cln2 != None):
             nang1 = nn.getAngToNode(cln2)
             angdif = getAngDif(nang1, nang2)
-            print (str(angdif)+" m : "+str((3.14/1.5)))
+            #print (str(angdif)+" m : "+str((3.14/1.5)))
             if (abs(angdif) > 3.14 / 1.5):
-                return False
+                return False#'''
     return True
 
 def shouldUTurnNow():
@@ -1137,6 +1353,8 @@ def archiveOldNodes(archivetime=25):
     st=time.time()
     #archivetime=25
     for n in nodes:
+        #if(lid.isBreaking()):
+        #    print("i"+str(methodIterations)+" ni"+str(n.iterationOfCreation))
         if(methodIterations[0]-n.iterationOfCreation>archivetime):
             #newest=n.getNewestInNetwork()
             #if(methodIterations[0]-newest.iterationOfCreation>archivetime):
@@ -1410,6 +1628,7 @@ class Node():
     dir=0
     cn=[]
     iterationOfCreation=0
+    numcombined=0
 
     def __init__(self,p1):
         global methodIterations
@@ -1485,14 +1704,14 @@ class Node():
 
     def archive(self):
         global nodes, oldNodes
-        if(len(nodes)<3):
-            print "archiving "+str(round(self.p.x))+", "+str(round(self.p.y))+" current len = "+str(len(nodes))
+        #if(len(nodes)<3):
+        #print "archiving "+str(round(self.p.x))+", "+str(round(self.p.y))+" current len = "+str(len(nodes))
         if(nodes.__contains__(self)):
-            if (len(nodes) < 3):
-                print("Done")
+            #if (len(nodes) < 3):
+            #    print("Done")
             nodes.remove(self)
-            if (len(nodes) < 3):
-                print("new size = "+str(len(nodes)))
+            #if (len(nodes) < 3):
+            #    print("new size = "+str(len(nodes)))
             oldNodes.append(self)
             #for n in self.cn:
             #    n.archive()
@@ -1639,6 +1858,7 @@ class Node():
         x=(self.p.x+n1.p.x)/2.0
         y=(self.p.y+n1.p.y)/2.0
         self.p=Point(x,y)
+
         for n in n1.cn:
             if (not self.cn.__contains__(n) and not self.equals(n)):
                 self.cn.append(n)
@@ -1673,6 +1893,8 @@ class NodalConnection():
     def __init__(self,n1,n2):
         self.n1=n1
         self.n2=n2
+    def getCenter(self):
+        return Node(Point((self.n1.p.x+self.n2.p.x)/2,(self.n1.p.y+self.n2.p.y)/2))
     def doesStillExist(self):
         global nodes
         if (nodes.__contains__(self.n1) and nodes.__contains__(self.n2)):
@@ -1908,6 +2130,19 @@ class Route():
         global lastCarState,scale
         self.rn=[]
         self.generateDemoRoute()
+
+    def create(self):
+        global lastCarState,scale
+        self.rn=[]
+        x1=lastCarState.x/scale
+        y1=lastCarState.y/scale
+        self.rn.append(Node(Point(x1, y1)))
+
+    def addPos(self,newnode):
+        last=len(self.rn)-1
+        self.rn[last].tryAddNode(newnode)
+        newnode.tryAddNode(self.rn[last])
+        self.rn.append(newnode)
 
     def generateDemoRoute(self):
         global lastCarState,scale
