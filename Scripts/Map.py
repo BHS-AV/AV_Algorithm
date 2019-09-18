@@ -366,7 +366,7 @@ def combineParallels():
                         if (not cn1.equals(cn) and not cn1.equals(n)):
 
                             a1 = n1.getAngToNode(cn1)
-                            if (abs(getAngDif(a1, a)) < 3.14 / 6 or abs(getAngDif(a1, a + 3.14)) < 3.14 / 6):
+                            if (abs(getAngDif(a1, a)) < 3.14 / 6 or abs(getAngDif(a1, a + 3.14)) < 3.14 /9):
                                 prls.append([NodalConnection(n,cn),NodalConnection(n1,cn1)])
             '''a=n.getAngToNode(cn)
             for n1 in nodes:
@@ -378,10 +378,20 @@ def combineParallels():
             '''
 
     for set in prls:
+        connect(set[0].n1,set[1].n1)
+        connect(set[0].n1,set[1].n2)
+        connect(set[1].n1,set[1].n1)
+        connect(set[1].n1,set[1].n2)
+
+    for set in prls:
         if(areParallel(set[0],set[1],maxwidth)):
             parallels.append(set[0])
             parallels.append(set[1])
 
+
+def connect(n1,n2):
+    n1.tryAddNode(n2)
+    n2.tryAddNode(n1)
 
 def areParallel(nc1,nc2,maxd):
     n1=nc1.getCenter()
