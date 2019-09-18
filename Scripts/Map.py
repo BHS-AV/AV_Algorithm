@@ -315,7 +315,8 @@ def scanWalls(data,dl,dr,df, datastring):
 
         if(time.time()-lastCorrection>10):
             getSimilarPos(dl,dr,df)
-        cleanNodes(scanrange)
+        if(not lid.isBreaking()):#TODO DELETE THIS LINE LATER
+            cleanNodes(scanrange)
         updateCarState()
         #findRoutes()
         if(route==None):
@@ -377,17 +378,19 @@ def combineParallels():
                             if(getAngDif(a1,a)<3.14/5 or getAngDif(a1,a+3.14)<3.14/5 )
             '''
 
-    for set in prls:
-        connect(set[0].n1,set[1].n1)
-        connect(set[0].n1,set[1].n2)
-        connect(set[1].n1,set[1].n1)
-        connect(set[1].n1,set[1].n2)
+    prls2=[]
 
     for set in prls:
         if(areParallel(set[0],set[1],maxwidth)):
             parallels.append(set[0])
             parallels.append(set[1])
+            prls2.append(set)
 
+    for set in prls2:
+        connect(set[0].n1,set[1].n1)
+        connect(set[0].n1,set[1].n2)
+        connect(set[0].n2,set[1].n1)
+        connect(set[0].n2,set[1].n2)
 
 def connect(n1,n2):
     n1.tryAddNode(n2)
