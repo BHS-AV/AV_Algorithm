@@ -141,6 +141,7 @@ def print_data(data):
     if (isBreaking()):
         if (time.time() - lastPathFind > 4):
             lastPathFind = time.time()
+            print("finding ppaths")
             m.findPPaths()
     lastturn=turn
     Controls.move(x, turn, speed,dt)

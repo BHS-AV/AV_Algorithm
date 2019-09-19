@@ -183,10 +183,10 @@ def render(dt):
         l3.draw(win)
         #print("drawing crack at ",l3)
 
-    for nl in parallels:
+    '''for nl in parallels:
         l3 = Line(Point(nl.n1.p.x, nl.n1.p.y), Point(nl.n2.p.x, nl.n2.p.y))
         l3.setFill("blue")
-        l3.draw(win)
+        l3.draw(win)'''
 
 
     for dirdata in routedirs:
@@ -315,7 +315,7 @@ def scanWalls(data,dl,dr,df, datastring):
 
         if(time.time()-lastCorrection>10):
             getSimilarPos(dl,dr,df)
-        cleanNodes(scanrange)
+        cleanNodes()
         updateCarState()
         #findRoutes()
         if(route==None):
@@ -388,10 +388,15 @@ def combineParallels():
     #parallels.append(prls2[0][0])
 
     for set in prls2:
-        connect(set[0].n1,set[1].n1)
-        connect(set[0].n1,set[1].n2)
-        connect(set[0].n2,set[1].n1)
-        connect(set[0].n2,set[1].n2)
+        if(set[0].n1.distToNode(set[1].n1)<(set[0].n1.distToNode(set[1].n2))):
+            connect(set[0].n1,set[1].n1)
+        else:
+            connect(set[0].n1,set[1].n2)
+        if (set[0].n2.distToNode(set[1].n1) < (set[0].n2.distToNode(set[1].n2))):
+            connect(set[0].n2, set[1].n1)
+        else:
+            connect(set[0].n2, set[1].n2)
+
 
 def connect(n1,n2):
     n1.tryAddNode(n2)
@@ -491,7 +496,7 @@ def retrieveNodes():
 
 def tieUpLooseEnds():
     global parallels, nodes, oldNodes,scale, lscale,cracks,phalls
-    print("tying up ends")
+    #print("tying up ends")
     ##TODO REMOVE PARRALELS
     if(len(parallels)>0):return
     singles=[]
@@ -1285,14 +1290,15 @@ def simplifyPath():
     #TODO: Use this to test simplify
 
 def simplify(range=20):
-    global nodes,scale,lscale, methodIterations
+    global nodes,oldnodes,scale,lscale, methodIterations
     maxdist=15*lscale/scale
     end=len(nodes)-range
     if (end<0): end=0
     start=0
     if start<0:start=0
+    cnodes=nodes if (len(nodes)>0 and not lid.isBreaking()) else oldNodes
     #print("range = ",start,'-',end)
-    for n in nodes:
+    for n in cnodes:
         if (methodIterations[0]-n.iterationOfCreation<range):continue
 
         if(not n.hasDisconnect()):
@@ -1308,15 +1314,15 @@ def simplify(range=20):
                         # print ("removing ", n.printNode())
                         n.cn[0].replaceNWith(n, n.cn[1])
                         n.cn[1].replaceNWith(n, n.cn[0])
-                        if (nodes.__contains__(n)):
-                            nodes.remove(n)
+                        if (cnodes.__contains__(n)):
+                            cnodes.remove(n)
                 elif(dist<maxdist+10):
                     adif1 = getAngDif(n.getAngToNode(n.cn[0]) + 3.14, n.getAngToNode(n.cn[1]))
                     if(abs(adif1)<3.1415/18):
                         n.cn[0].replaceNWith(n, n.cn[1])
                         n.cn[1].replaceNWith(n, n.cn[0])
-                        if (nodes.__contains__(n)):
-                            nodes.remove(n)
+                        if (cnodes.__contains__(n)):
+                            cnodes.remove(n)
     pass
 
 def cleanNodes(range=10):
@@ -1433,12 +1439,13 @@ def removeAbsentNodes():
                 n.cn.remove(n1)
 
 def removeTriangles(range=20):
-    global nodes
-    end=len(nodes)
+    global nodes,oldNodes
+    cnodes=nodes if (len(nodes)>0 and not lid.isBreaking()) else oldNodes
+    end=len(cnodes)
     start=end-range
     if start<0:start=0
     #for n in itertools.islice(nodes,start,end):
-    for n in nodes:
+    for n in cnodes:
         if (methodIterations[0]-n.iterationOfCreation<range):continue
         if len(n.cn)==2:
             if n.cn[0].contains(n.cn[1]) and n.cn[1].contains(n.cn[0]):
@@ -1447,17 +1454,18 @@ def removeTriangles(range=20):
                     n.cn[1].removeNode(n)
                 else:
                     n.cn[0].removeNode(n)
-                nodes.remove(n)
+                cnodes.remove(n)
 
 def removeBranches(range=20):
-    global nodes
-    end=len(nodes)-range
+    global nodes,oldNodes
+    cnodes=nodes if (len(nodes)>0 and not lid.isBreaking()) else oldNodes
+    end=len(cnodes)-range
     start=0
     if end<0:end=0
     if start<0:start=0
     maxdist=2*lscale/scale
     #for n in itertools.islice(nodes,start,end):
-    for n in nodes:
+    for n in cnodes:
         if (methodIterations[0]-n.iterationOfCreation<range):continue
 
         if len(n.cn) == 1:
@@ -1465,7 +1473,7 @@ def removeBranches(range=20):
                 dist=n.distToNode(n.cn[0])
                 if(dist<maxdist):
                     n.cn[0].removeNode(n)
-                    nodes.remove(n)
+                    cnodes.remove(n)
 
 def resetLargeNodes(range=20):
     global nodes, scale, lscale
