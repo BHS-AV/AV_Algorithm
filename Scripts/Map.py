@@ -315,8 +315,7 @@ def scanWalls(data,dl,dr,df, datastring):
 
         if(time.time()-lastCorrection>10):
             getSimilarPos(dl,dr,df)
-        if(not lid.isBreaking()):#TODO DELETE THIS LINE LATER
-            cleanNodes(scanrange)
+        cleanNodes(scanrange)
         updateCarState()
         #findRoutes()
         if(route==None):
@@ -340,7 +339,7 @@ def combineParallels():
     global parallels
     globals()
     maxdist=10*lscale/scale
-    maxwidth=1*lscale/scale
+    maxwidth=.75*lscale/scale
     prls=[]
     parallels=[]
     maxppathtol=1.5*lscale/scale
@@ -379,12 +378,14 @@ def combineParallels():
             '''
 
     prls2=[]
-
     for set in prls:
         if(areParallel(set[0],set[1],maxwidth)):
             parallels.append(set[0])
             parallels.append(set[1])
             prls2.append(set)
+
+    #if(len(prls2)==0):return
+    #parallels.append(prls2[0][0])
 
     for set in prls2:
         connect(set[0].n1,set[1].n1)
@@ -417,8 +418,11 @@ def areParallel(nc1,nc2,maxd):
     ry2=(rp3.y+rp4.y)/2
     if(abs(ry1-ry2)>maxd):return False
     if(rp1.x+.1<rp3.x and rp3.x+.1<rp2.x):
+        print(nc1.n1.p, nc1.n2.p, " is parrallel to ", nc2.n1.p, nc2.n2.p)
         return True
     if(rp1.x+.1<rp4.x and rp3.x+.1<rp2.x):
+        print(nc1.n1, nc1.n2, " is parrallel to ", nc2.n1, nc2.n2)
+
         return True
 
 
@@ -434,13 +438,14 @@ def getAverageLineAng(nc1,nc2):
         a=a01+(angdif1/2)
     else:
         a=a00+(angdif/2)
+    print("avg of "+str(a00)+" and "+str(a10)+" is "+str(a))
     return a
     #a01=nc2.n2.getAngToNode(nc2.n1)
 
 
 def rotatePoint(p,c,o):
     rad=p.distToNode(c)
-    a=c.getAngToNode(p)+o
+    a=c.getAngToNode(p)-o
     p1=Point(c.p.x+(rad*np.cos(a)),c.p.y+(rad*np.sin(a)))
     return p1
 
@@ -485,9 +490,10 @@ def retrieveNodes():
         print ("Retrieved "+str(numretrieved)+" Nodes")
 
 def tieUpLooseEnds():
-    global nodes, oldNodes,scale, lscale,cracks,phalls
+    global parallels, nodes, oldNodes,scale, lscale,cracks,phalls
     print("tying up ends")
     ##TODO REMOVE PARRALELS
+    if(len(parallels)>0):return
     singles=[]
     maxd=1.5*lscale/scale
     #print ("tying up loose ends")
@@ -1313,7 +1319,7 @@ def simplify(range=20):
                             nodes.remove(n)
     pass
 
-def cleanNodes(range=20):
+def cleanNodes(range=10):
     global subtimes,methodIterations,nodes,oldNodes
     st=time.time()
     '''removeAbsentNodes()
@@ -1324,13 +1330,15 @@ def cleanNodes(range=20):
     #removeAllDupes()
     simplify(range)'''
     #TODO when adding nodes, dont just check dist to node, but also check dist to a connection
-    removeBranches(10)
-    removeTriangles(10)
 
-    simplify(15)
+    #if(len(nodes)==0 and lid.isBreaking()):return
+    removeBranches(range)
+    removeTriangles(range)
+
+    simplify(range*1.5)
     #combineClose(20)
     #print(" before archive : "+str(len(nodes))+"-"+str(len(oldNodes)))
-    archiveOldNodes(40)
+    archiveOldNodes(range*4)
     #print(" after archive : "+str(len(nodes))+"-"+str(len(oldNodes)))
 
     subtimes[3]=round((time.time()-st),3)
