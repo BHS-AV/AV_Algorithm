@@ -497,7 +497,7 @@ def retrieveNodes():
 def tieUpLooseEnds():
     global parallels, nodes, oldNodes,scale, lscale,cracks,phalls
     #print("tying up ends")
-    ##TODO REMOVE PARRALELS
+
     if(len(parallels)>0):return
     singles=[]
     maxd=1.5*lscale/scale
@@ -505,7 +505,7 @@ def tieUpLooseEnds():
     for n in oldNodes:
         if (len(n.cn)==1):
             singles.append(n)
-    cracks=[]
+    cracks=[]#TODO REMOVE CRACKS THAT INTERSECT WITH CAR PATH
     for n in singles:
         cd=1000000
         close = None
@@ -544,6 +544,10 @@ def tieUpLooseEnds():
         #cn=getClosestANode(n,40)
         #print (str(n.p.x)+", "+str(n.p.y))
     combineParallels()
+
+def doesConnectionIntersectPaths():
+    globals()
+    #TODO : THIS
 
 
 def updateCarState():
@@ -2204,6 +2208,7 @@ class Route():
             if(d<cd):
                 cd=d
                 cn=n
+        if(cn==None):return None
         if(self.rn.index(cn)<len(self.rn)-1):
             cn=self.rn[self.rn.index(cn)+1]
         a=car.getAngToNode(cn)
