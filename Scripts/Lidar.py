@@ -6,7 +6,7 @@ import Map as m
 import time
 
 reversing = 0
-maxSpeed = 3
+maxSpeed = 5
 lastTime = 0
 lt=0
 destDir = 1 # 0 = north , 90 = east , 180 = south , 270 = west
@@ -71,7 +71,7 @@ def print_data(data):
 
     #MAPPING
     m.update(nav.getOrient())
-    if (rospy.get_time() > lt + .3 or (isBreaking() and rospy.get_time() > lt + .15)):
+    if (rospy.get_time() > lt + .2 or (isBreaking() and rospy.get_time() > lt + .15)):
         lt = rospy.get_time()
         m.scanWalls(data.ranges,distLeft,distRight,distFront,dataString)
 
@@ -153,14 +153,14 @@ def turnAround():
         navMode=0
 
 def standardControls(distRight,distLeft,dataFront,distFront):
-    global turn,lastPathFind,reversing,speed,x
+    global turn,lastPathFind,reversing,speed,x,maxSpeed
 
     x = 1
     turn = (distRight / (distLeft + distRight)) * 2.0 - 1
 
     turn = -turn
     speed = limit_speed(((((distRight + distLeft) / 4.0) + distFront) / 1.25) * maxSpeed, maxSpeed)
-
+    #speed
     turn = limitTurn(turn)
 
     if (abs(distRight - distLeft) < (distRight + distLeft) / 8):
