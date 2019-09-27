@@ -1216,7 +1216,16 @@ def distBetween(p1=Point(0,0),p2=Point(0,0)):
 
 def getPoint(data, dir):
     global scale, orient,lscale
-    r=get_dist(data,dir)
+    max=dir+2 if (dir+2<240) else 240
+    min=dir-2 if (dir-2>=0) else 0
+    dar=get_data_array(data,min,max)
+    r=dar.mean()
+    range=dar.max()-dar.min()
+    if(range>1):
+        #print (range," r too high")
+        return None
+
+    #r=get_dist(data,dir)
     #d=get_data_array(data, dir-3,dir+3)
     #dir=240-dir
     if (r<8):
@@ -1227,6 +1236,12 @@ def getPoint(data, dir):
         p=Point(x / scale + (r * np.math.cos(d1)), y / scale + (r * np.math.sin(d1)))
         return p
     return None
+
+def get_data_array(data, a=0, b=240):
+    PPD = 4.5  # points per degree
+    data = data[int(a * PPD):int(b * PPD)]
+    arr = np.array(data)
+    return arr
 
 def get_dist(data, a=0):
     PPD = 4.5  # points per degree
