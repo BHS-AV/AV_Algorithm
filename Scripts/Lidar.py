@@ -6,7 +6,7 @@ import Map as m
 import time
 
 reversing = 0
-maxSpeed = 4
+maxSpeed = 6
 lastTime = 0
 lt=0
 destDir = 1 # 0 = north , 90 = east , 180 = south , 270 = west
