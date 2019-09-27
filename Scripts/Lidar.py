@@ -167,7 +167,8 @@ def standardControls(distRight,distLeft,dataFront,distFront):
         turn = turn * ((maxSpeed - speed) / maxSpeed)
 
 
-    if (needsToReverse(dataFront, distFront) > 0):
+    if (needsToReverse(dataFront, distFront) == 1):
+        stop()
         reversing = 1
         if (distLeft > distRight):
             reversing = -reversing
