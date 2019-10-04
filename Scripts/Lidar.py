@@ -159,6 +159,7 @@ def standardControls(distRight,distLeft,dataFront,distFront):
     turn = (distRight / (distLeft + distRight)) * 2.0 - 1
 
     turn = -turn
+    speed=(maxSpeed*(1-abs(turn)))#TODO THIS
     speed = limit_speed(((((distRight + distLeft) / 4.0) + distFront) / 1.25) * maxSpeed, maxSpeed)
     #speed
     turn = limitTurn(turn)

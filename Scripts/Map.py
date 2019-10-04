@@ -3,8 +3,8 @@ import itertools
 import Lidar as lid
 from graphics import *
 
-height=1000
-width=1000
+height=2000
+width=2000
 anchorpoint=Point(width/2,height/2)
 
 
@@ -13,7 +13,7 @@ image=Image(anchorpoint, height, width)
 
 c=None
 front=None
-scale=4
+scale=10
 x=win.getWidth()/2*scale
 y=win.getHeight()/2*scale
 orient=0
@@ -63,6 +63,25 @@ loops=0
 #shouldUTurn=False
 finishTimer=0
 cracks=[]
+
+def shift(sx,sy):
+    globals()
+    global x,y
+    for n in oldNodes:
+        n.p.x=n.p.x+sx
+        n.p.y=n.p.y+sy
+    for n in nodes:
+        n.p.x=n.p.x+sx
+        n.p.y=n.p.y+sy
+    for n in carpath.path:
+        n.p.x=n.p.x+sx
+        n.p.y=n.p.y+sy
+    x=x+(sx*scale)
+    y=y+(sy*scale)
+    #y=newy
+    #x=newx
+
+
 
 def update(dir):
     global win,front,c,x,y,orient, oldLocs
@@ -908,6 +927,10 @@ def updatePath(pos,dl,dr,df):
         carpath=Path(pos,distdata)
     else:
         carpath.addPos(pos,distdata)
+        if(pos.x>width):
+            shift(-100,0)
+        if(pos.x<0):
+            shift(100,0)
 
 def combineDuplicates(n1, range):
     global nodes
