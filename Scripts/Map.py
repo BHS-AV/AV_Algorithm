@@ -64,6 +64,8 @@ loops=0
 finishTimer=0
 cracks=[]
 
+mapping=True;
+
 def shift(sx,sy):
     globals()
     global x,y
@@ -240,7 +242,7 @@ def render(dt):
     c.draw(win)
     front.draw(win)
 
-def scanWalls(data,dl,dr,df, datastring):
+def scanWalls(data,dl,dr,df, datastring, mapping=True):
     global orient,finishTimer,route,cracks,forceRetrieval,x,y,lt,oldLocs,points, scantime,allwalls,wall,nodes, scale, lscale,lastCarState, nodes, refbool, lastCorrection, haslapped
     if (orient==0):return
     samples=30
@@ -251,49 +253,49 @@ def scanWalls(data,dl,dr,df, datastring):
 
     if(haslapped):
         samples=round(samples/3)
+    if(mapping):
+        for i in range(samples):
+            lp1=getPoint(data,i*(115/samples)+5)
+            rp1=getPoint(data,240-(i*(115/samples)+5))
+            if (lp1!=None):
+                points.append(lp1)
+            if (rp1!=None):
+                points.append(rp1)
 
-    for i in range(samples):
-        lp1=getPoint(data,i*(115/samples)+5)
-        rp1=getPoint(data,240-(i*(115/samples)+5))
-        if (lp1!=None):
-            points.append(lp1)
-        if (rp1!=None):
-            points.append(rp1)
+        subtimes[0]=round(time.time()-st,3)
+        st=time.time()
 
-    subtimes[0]=round(time.time()-st,3)
-    st=time.time()
+        #WHYYYY
+        mininitdist=.37*lscale/scale
+        maxCombineDist=1*lscale/scale
+        minCombineDist=.2*lscale/scale
+        addedNodes=[]
+        for p in points:
+            n=Node(p)
+            n1=getClosestNode(n,40)
+            if(n1!=None):
+                n1nd=n.distToNode(n1)
+                if (n1nd>mininitdist):
+                    if (shouldAddNew(n,n1)):
+                    #if (True):
+                        nodes.append(n)
+                        addedNodes.append(n)
+                else:
+                    if(n1.numcombined<3 and n1.iterationOfCreation<methodIterations[0]-5):
+                        n1.combineNodes(n)
+                        n1.numcombined=n1.numcombined+1
 
-    #WHYYYY
-    mininitdist=.37*lscale/scale
-    maxCombineDist=1*lscale/scale
-    minCombineDist=.2*lscale/scale
-    addedNodes=[]
-    for p in points:
-        n=Node(p)
-        n1=getClosestNode(n,40)
-        if(n1!=None):
-            n1nd=n.distToNode(n1)
-            if (n1nd>mininitdist):
-                if (shouldAddNew(n,n1)):
-                #if (True):
-                    nodes.append(n)
-                    addedNodes.append(n)
+
             else:
-                if(n1.numcombined<3 and n1.iterationOfCreation<methodIterations[0]-5):
-                    n1.combineNodes(n)
-                    n1.numcombined=n1.numcombined+1
+                nodes.append(n)
+                addedNodes.append(n)
+                #numadded=numadded+1
 
-
-        elif(not lid.isBreaking()):
-            nodes.append(n)
-            addedNodes.append(n)
-            #numadded=numadded+1
-
-    '''for n in addedNodes:
-        n1=getClosestNode(n,40)
-        if(n1!=None):
-            n1nd=n.distToNode(n)
-            #if(n1nd)'''
+        '''for n in addedNodes:
+            n1=getClosestNode(n,40)
+            if(n1!=None):
+                n1nd=n.distToNode(n)
+                #if(n1nd)'''
     #for n in nodes:
 
     #findPPaths()
@@ -658,7 +660,7 @@ def hasLooped():
     global carpath,methodIterations,x,y,scale,lscale, timeOfLastLoop,loops,shouldUTurn,forceRetrieval
     car=Point(x/scale,y/scale)
     maxdist=2.0*lscale/scale
-    if(time.time()-timeOfLastLoop>5):
+    if(time.time()-timeOfLastLoop>10):
         firstPos=carpath.path[0]
         dx=car.x-firstPos.p.x
         dy=car.y-firstPos.p.y
@@ -671,7 +673,7 @@ def hasLooped():
             loops += 1
             if(loops==1):
                 forceRetrieval
-                lid.stop()
+                #lid.stop()TODO I JUST DISABLED THIS
                 #shouldUTurn=True
 
 

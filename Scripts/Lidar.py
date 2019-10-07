@@ -72,8 +72,9 @@ def print_data(data):
     #MAPPING
     m.update(nav.getOrient())
     if (rospy.get_time() > lt + .2 or (isBreaking() and rospy.get_time() > lt + .15)):
+        mapping=not isBreaking()
         lt = rospy.get_time()
-        m.scanWalls(data.ranges,distLeft,distRight,distFront,dataString)
+        m.scanWalls(data.ranges,distLeft,distRight,distFront,dataString, mapping)
 
 
     # ORIENTATION
@@ -107,7 +108,10 @@ def print_data(data):
             speed=3
             turn=-m.route.dif/3.15
         else:
-            standardControls(distRight,distLeft,dataFront,distFront)
+            if(reversing==0):
+                standardControls(distRight,distLeft,dataFront,distFront)
+            else:
+                reverse(reversing,distFront,distLeft,distRight)
 
         #turn=0
         '''if(distFront<2):
@@ -146,6 +150,29 @@ def print_data(data):
     lastturn=turn
     Controls.move(x, turn, speed,dt)
 
+def reverse(dir,df,dl,dr):
+    global turn,lastPathFind,reversing,speed,x,maxSpeed
+    if(df>3):
+        reversing=0
+    else:
+        speed=1
+        x=-1
+        turn=1
+
+
+
+def getAngDif(a1,a2):
+    adif = a2 - a1
+    if(adif<-3.14159):
+        adif=adif+(3.14159*2)
+    if(adif>3.14159):
+        adif=adif=adif-(3.14159*2)
+    if (abs(adif) > 3.14159):
+        adif = a2 + (3.14159 * 2) - a1
+    if (abs(adif) > 3.14159):
+        adif = a2 - (3.14159 * 4) - a1
+    return adif
+
 def turnAround():
     global turn,orient,turnStart,navMode
     turn=1
@@ -160,7 +187,8 @@ def standardControls(distRight,distLeft,dataFront,distFront):
 
     turn = -turn
     speed=(maxSpeed*(1-abs(turn)))#TODO THIS
-    speed = limit_speed(((((distRight + distLeft) / 4.0) + distFront) / 1.25) * maxSpeed, maxSpeed)
+    speed= speed*((distFront/6) if distFront<6 else 1)
+    #speed = limit_speed(((((distRight + distLeft) / 4.0) + distFront) / 1.25) * maxSpeed, maxSpeed)
     #speed
     turn = limitTurn(turn)
 
@@ -169,7 +197,7 @@ def standardControls(distRight,distLeft,dataFront,distFront):
 
 
     if (needsToReverse(dataFront, distFront) == 1):
-        stop()
+        #stop()
         reversing = 1
         if (distLeft > distRight):
             reversing = -reversing
