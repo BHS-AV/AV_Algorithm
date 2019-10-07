@@ -251,8 +251,8 @@ def scanWalls(data,dl,dr,df, datastring, mapping=True):
     prange=len(nodes)*.8
     if prange>scanrange:scanrange=prange
 
-    if(haslapped):
-        samples=round(samples/3)
+    #if(haslapped):#TODO AM REMOVING LAPPING MECHANISMS
+    #    samples=round(samples/3)
     if(mapping):
         for i in range(samples):
             lp1=getPoint(data,i*(115/samples)+5)
