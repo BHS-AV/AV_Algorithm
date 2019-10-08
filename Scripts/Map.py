@@ -248,8 +248,8 @@ def scanWalls(data,dl,dr,df, datastring, mapping=True):
     samples=30
     st=time.time()
     scanrange=50
-    prange=len(nodes)*.8
-    if prange>scanrange:scanrange=prange
+    #prange=len(nodes)*.8
+    #if prange>scanrange:scanrange=prange
 
     #if(haslapped):#TODO AM REMOVING LAPPING MECHANISMS
     #    samples=round(samples/3)
@@ -615,31 +615,42 @@ def shouldAddNew(nn, cln):
     cln2d=100000
     nang2 = nn.getAngToNode(cln)
     maxdist=2*lscale/scale
-    if(lid.isBreaking()):return False
+    #if(lid.isBreaking()):return False
     for n in cln.cn:
-        if(loops==0):
-            '''dist2n=nn.distToNode(n)
+        dist2n = nn.distToNode(n)
+        if (dist2n < maxdist):
+            nang3 = nn.getAngToNode(n)
+            angdif1 = getAngDif(nang2, nang3)
+            # if(angdif1<3.14/3):
+            #    return False
+            # temp disabled
+        dist = n.distToNode(nn)
+        if (dist < cln2d):
+            cln2d = dist
+            cln2 = n
+        '''if(loops==0):
+            dist2n=nn.distToNode(n)
             if(dist2n<maxdist):
                 nang3=nn.getAngToNode(n)
                 angdif1=getAngDif(nang2,nang3)
-                if(angdif1<3.14/3):
-                    return False'''
-            #'''temp disabled
+                #if(angdif1<3.14/3):
+                #    return False
+                #temp disabled
             dist=n.distToNode(nn)
             if (dist<cln2d):
                 cln2d=dist
-                cln2=n#'''
+                cln2=n
         else:
             #TODO THIS is Wrong
             nang3=n.getAngToNode(n)
             adif1=getAngDif(nang3+3.142,nang2)
             if(abs(adif1)<3.14/6):
-                return False
+                return False'''
 
     #temporarily disabled
-    if (loops>0):
+    #if (loops>0):
         #TODO MAKE BETTER FOR EXPLORING DIFFERENT LOCATIONS
-        return False
+        #return False
     else:
         if (cln2 != None):
             nang1 = nn.getAngToNode(cln2)
@@ -1551,9 +1562,10 @@ def correctPositionalDrift(data):
         if(dist<closestDist):
             closest=p
             closestDist=dist
-
+    mxc=2*lscale/scale
+    mnc=.5*lscale/scale
     #print 'closest pos = ',closestDist
-    if(closestDist<120 and closestDist>30):
+    if(closestDist<mxc and closestDist>mnc):
         print ('moved from ',x,',',y,' to ',closest)
         #haslapped=1
         dx=(closest[0]-x)/scale

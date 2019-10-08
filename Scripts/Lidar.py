@@ -152,7 +152,7 @@ def print_data(data):
 
 def reverse(dir,df,dl,dr):
     global turn,lastPathFind,reversing,speed,x,maxSpeed
-    if(df>3):
+    if(df>4):
         reversing=0
     else:
         speed=1
