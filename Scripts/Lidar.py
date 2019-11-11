@@ -15,12 +15,11 @@ lastPathFind=time.time()
 lastturn=0
 turn=0
 turnStart=0
-navMode=0 # 0 = standard ; 1 = reversing
+navMode=2 # 0 = standard ; 1 = reversing
 orient=0
 dataString=""
 speed=0
 x=0
-#lastPrintTime=0
 
 def get_data_array(data, a=0, b=240):
     PPD = 4.5  # points per degree
@@ -47,10 +46,6 @@ def print_data(data):
     global maxSpeed
     global hold,lt,lastPathFind,lastturn,turn,navMode,turnStart,orient,dataString,speed,x
 
-
-
-
-
     # TIME
     global lastTime
     if (lastTime == 0):
@@ -60,6 +55,7 @@ def print_data(data):
     lastTime = thisTime
 
     # DATA ARRAYS
+    fulldata=get_data_array(data.ranges,0,240)
     dataFront = get_data_array(data.ranges, 100, 140)
     dataLeft = get_data_array(data.ranges, 120, 220)
     dataRight = get_data_array(data.ranges, 20, 120)
@@ -76,33 +72,11 @@ def print_data(data):
         lt = rospy.get_time()
         m.scanWalls(data.ranges,distLeft,distRight,distFront,dataString, mapping)
 
-
     # ORIENTATION
     orient = nav.getOrient()
-    relDestDir = destDir - orient
-
-    # WALL ANGLES
-    a1=20
-    a2=40
-    rAng = getRelativeWallsOrient(data, a1, a2, 1)-60-a1
-    lAng =  getRelativeWallsOrient(data, -a2, -a1, 0)-60-a1
-    dAng = rAng-lAng
-    straightness = (rAng + lAng)
-
-    # PATHS
-    rOpenings = scanOpenings(data, 5, 115)
-    lOpenings = scanOpenings(data, 155, 265)
-
-    # DEFAULT MOVEMENT
-
-
-    xorient = nav.getXOrient() * 180 / 3.14158
-    yorient = nav.getYOrient() * 180 / 3.14159
 
     if navMode==0:  # STANDARD CONTROLS
-        #kiojdio=2
         if(m.route!=None):
-            #print ("route exist")
             #TODO FIX THIS
             x=1
             speed=3
@@ -113,34 +87,15 @@ def print_data(data):
             else:
                 reverse(reversing,distFront,distLeft,distRight)
 
-        #turn=0
-        '''if(distFront<2):
-            #print 'turn around!'
-            turnStart=orient
-            navMode=1'''
     elif navMode==1:
         speed=0
         turn=0
         x=1
-        #sdads=0
-        #turnAround()
-    dataString="navmode "+str(navMode)+" | dist  ("+str(round(distLeft,1))+" "+str(round(distFront,1))+" "+str(round(distRight,1))+") | turn "+str(round(turn,1))+" | speed "+str(speed)
-    #print('navmode ',navMode," | dist  (",round(distLeft,1), round(distFront,1) ,round(distRight,1)," | turn ",round(turn,1))
+    elif navMode==2:
+        findMaxes(fulldata)
 
-    '''elif reversing != 0:  # REVERSING
 
-    # CHECK TO SEE IF RUNNING INTO SOMETHING
-    if xorient > 10 or yorient > 10:
-        reversing = 0
-
-    # BASIC REVERSING
-    turn = reversing
-    x = -1
-    speed = speed / 4
-
-    # CHECKS TO SEE IF STILL NEED TO TURN
-    if (needsToReverse(dataFront, distFront, 2) == 0):
-        reversing = 0'''
+    dataString=" o : "+str(round(orient))+" | navmode "+str(navMode)+" | dist  ("+str(round(distLeft,1))+" "+str(round(distFront,1))+" "+str(round(distRight,1))+") | turn "+str(round(turn,1))+" | speed "+str(round(speed))
 
     if (isBreaking()):
         if (time.time() - lastPathFind > 4):
@@ -150,6 +105,13 @@ def print_data(data):
     lastturn=turn
     Controls.move(x, turn, speed,dt)
 
+
+
+def findMaxes(data):
+    mean=data.mean()
+    p1=np.percentile(data,75)
+    print p1
+
 def reverse(dir,df,dl,dr):
     global turn,lastPathFind,reversing,speed,x,maxSpeed
     if(df>4):
@@ -158,8 +120,6 @@ def reverse(dir,df,dl,dr):
         speed=1
         x=-1
         turn=1
-
-
 
 def getAngDif(a1,a2):
     adif = a2 - a1
@@ -188,8 +148,6 @@ def standardControls(distRight,distLeft,dataFront,distFront):
     turn = -turn
     speed=(maxSpeed*(1-abs(turn)))#TODO THIS
     speed= speed*((distFront/6) if distFront<6 else 1)
-    #speed = limit_speed(((((distRight + distLeft) / 4.0) + distFront) / 1.25) * maxSpeed, maxSpeed)
-    #speed
     turn = limitTurn(turn)
 
     if (abs(distRight - distLeft) < (distRight + distLeft) / 8):
