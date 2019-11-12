@@ -92,9 +92,23 @@ def print_data(data):
         turn=0
         x=1
     elif navMode==2:
-        findMaxes(fulldata)
-
-
+        speed=0
+        turn=0
+        x=0
+        rows=findMaxes(fulldata)
+        if(len(rows)!=0):
+            best=rows[0]
+            br = (  best[len(best) - 1] / 4.5)-(best[0] / 4.5)
+            for r in rows:
+                rg=(  r[len(r) - 1]) / 4.5-(r[0] / 4.5)
+                if(rg>br):
+                    br=rg
+                    best=r
+            destd=(best[0]/2.0)+(br/2.0)-120
+            print("optimal dir is at "+str(destd)+" ("+str(best[0]/4.5)+"-"+str(best[len(best)-1]/4.5)+")")
+            speed=1
+            x=1
+            turn=(destd/90) if abs(destd)<90 else (-1 if turn<0 else 1)
     dataString=" o : "+str(round(orient))+" | navmode "+str(navMode)+" | dist  ("+str(round(distLeft,1))+" "+str(round(distFront,1))+" "+str(round(distRight,1))+") | turn "+str(round(turn,1))+" | speed "+str(round(speed))
 
     if (isBreaking()):
@@ -109,8 +123,29 @@ def print_data(data):
 
 def findMaxes(data):
     mean=data.mean()
+    ppd=4.5
     p1=np.percentile(data,75)
-    print p1
+    highest=[]
+    rows=[]
+    r=None
+    for i in range(len(data)):
+        if(data[i]>p1):
+            if(r!=None):
+                r.append(i)
+            else:
+                r=[i]
+        else:
+            if(r!=None):
+                if(len(r)/4.5>2):
+                    rows.append(r)
+                    r=None
+            #highest.append(i)
+    '''for r1 in rows:
+        min=r1[0]/4.5
+        max=r1[len(r1)-1]/4.5
+        print("row  "+str(min)+" - "+str(max))'''
+    #print p1
+    return rows
 
 def reverse(dir,df,dl,dr):
     global turn,lastPathFind,reversing,speed,x,maxSpeed
