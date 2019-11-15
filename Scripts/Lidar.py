@@ -74,6 +74,7 @@ def print_data(data):
 
     # ORIENTATION
     orient = nav.getOrient()
+    # Basic navigation
 
     if navMode==0:  # STANDARD CONTROLS
         if(m.route!=None):
@@ -86,7 +87,6 @@ def print_data(data):
                 standardControls(distRight,distLeft,dataFront,distFront)
             else:
                 reverse(reversing,distFront,distLeft,distRight)
-
     elif navMode==1:
         speed=0
         turn=0
