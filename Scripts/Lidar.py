@@ -98,17 +98,22 @@ def print_data(data):
         rows=findMaxes(fulldata)
         if(len(rows)!=0):
             best=rows[0]
-            br = (  best[len(best) - 1] / 4.5)-(best[0] / 4.5)
+            br = ((  best[len(best) - 1] / 4.5)-(best[0] / 4.5))/((abs((best[len(best)/2]/4.5)-120)/120))
             for r in rows:
-                rg=(  r[len(r) - 1]) / 4.5-(r[0] / 4.5)
+                rg=((  r[len(r) - 1]) / 4.5-(r[0] / 4.5))//((abs((r[len(r)/2]/4.5)-120)/120))
+                #print ("row from "+str((r[len(r)-1]))+" - "+str((r[0]))+" is "+str(rg))
                 if(rg>br):
                     br=rg
                     best=r
-            destd=(best[0]/2.0)+(br/2.0)-120
+            destd=(best[0]/2.0)+(((  best[len(best) - 1] / 4.5)-(best[0] / 4.5))/2.0)-120
             print("optimal dir is at "+str(destd)+" ("+str(best[0]/4.5)+"-"+str(best[len(best)-1]/4.5)+")")
             speed=1
             x=1
-            turn=(destd/90) if abs(destd)<90 else (-1 if turn<0 else 1)
+            turn=(destd/60) if abs(destd)<60 else (-1 if turn<0 else 1)
+        elif(dataFront.mean()>6 or fulldata.mean()>8):
+            speed=2
+            x=1
+
     dataString=" o : "+str(round(orient))+" | navmode "+str(navMode)+" | dist  ("+str(round(distLeft,1))+" "+str(round(distFront,1))+" "+str(round(distRight,1))+") | turn "+str(round(turn,1))+" | speed "+str(round(speed))
 
     if (isBreaking()):
