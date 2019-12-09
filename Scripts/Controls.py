@@ -25,6 +25,8 @@ def move(x1, th1, speed=1,delta=0):
     rospy.init_node('keyop')  # vesc/ackermann_cmd_mux/input/navigation ackermann_msgs/AckermannDriveStamped
     pub = rospy.Publisher('/vesc/ackermann_cmd_mux/input/teleop', AckermannDriveStamped, queue_size=10)
     #print(delta)
+    th12=th1*turn
+    if(abs(th12)>=1):print ("WARNING TURN = "+str(th12))
     try:
         m.move(x1*speed*delta*50)
         #m.move(x1*speed)

@@ -100,7 +100,7 @@ def print_data(data):
             best=rows[0]
             br = ((  best[len(best) - 1] / 4.5)-(best[0] / 4.5))/((abs((best[len(best)/2]/4.5)-120)/120))
             for r in rows:
-                rg=((  r[len(r) - 1]) / 4.5-(r[0] / 4.5))//((abs((r[len(r)/2]/4.5)-120)/120))
+                rg=((  r[len(r) - 1]) / 4.5-(r[0] / 4.5))/((abs((r[len(r)/2]/4.5)-120)/120))
                 #print ("row from "+str((r[len(r)-1]))+" - "+str((r[0]))+" is "+str(rg))
                 if(rg>br):
                     br=rg
@@ -121,6 +121,7 @@ def print_data(data):
             lastPathFind = time.time()
             print("finding ppaths")
             m.findPPaths()
+    turn=(turn*.3)+(lastturn*.7)
     lastturn=turn
     Controls.move(x, turn, speed,dt)
 
