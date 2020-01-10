@@ -96,6 +96,13 @@ def print_data(data):
         turn=0
         x=0
         rows=findMaxes(fulldata)
+        '''
+        Plan
+        
+        1 - find a max
+        2 - go that direction
+        3 - if can no longer go in that direction,  restart
+        '''
         if(len(rows)!=0):
             best=rows[0]
             br = ((  best[len(best) - 1] / 4.5)-(best[0] / 4.5))/((abs((best[len(best)/2]/4.5)-120)/120))
@@ -106,10 +113,10 @@ def print_data(data):
                     br=rg
                     best=r
             destd=(best[0]/2.0)+(((  best[len(best) - 1] / 4.5)-(best[0] / 4.5))/2.0)-120
-            print("optimal dir is at "+str(destd)+" ("+str(best[0]/4.5)+"-"+str(best[len(best)-1]/4.5)+")")
-            speed=1
-            x=1
-            turn=(destd/60) if abs(destd)<60 else (-1 if turn<0 else 1)
+            print("optimal dir is at "+str(round(destd-120))+" ("+str(round(best[0]/4.5-120))+"-"+str(round(best[len(best)-1]/4.5)-90)+")")
+            #speed=1
+            #x=1
+            #turn=(destd/60) if abs(destd)<60 else (-1 if turn<0 else 1)
         elif(dataFront.mean()>6 or fulldata.mean()>8):
             speed=2
             x=1
@@ -146,10 +153,10 @@ def findMaxes(data):
                     rows.append(r)
                     r=None
             #highest.append(i)
-    '''for r1 in rows:
+    for r1 in rows:
         min=r1[0]/4.5
         max=r1[len(r1)-1]/4.5
-        print("row  "+str(min)+" - "+str(max))'''
+        print("row  "+str(round(min))+" - "+str(round(max)))
     #print p1
     return rows
 

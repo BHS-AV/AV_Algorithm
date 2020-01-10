@@ -3,8 +3,8 @@ import itertools
 import Lidar as lid
 from graphics import *
 
-height=2000
-width=2000
+height=1200
+width=1200
 anchorpoint=Point(width/2,height/2)
 
 
