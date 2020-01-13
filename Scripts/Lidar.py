@@ -20,6 +20,7 @@ orient=0
 dataString=""
 speed=0
 x=0
+prefdir=0
 
 def get_data_array(data, a=0, b=240):
     PPD = 4.5  # points per degree
@@ -44,7 +45,7 @@ def print_data(data):
     # GLOBAL VARIABLES
     global reversing
     global maxSpeed
-    global hold,lt,lastPathFind,lastturn,turn,navMode,turnStart,orient,dataString,speed,x
+    global hold,lt,lastPathFind,lastturn,turn,navMode,turnStart,orient,dataString,speed,x,prefdir
 
     # TIME
     global lastTime
@@ -113,6 +114,7 @@ def print_data(data):
                     br=rg
                     best=r
             destd=(best[0]/2.0)+(((  best[len(best) - 1] / 4.5)-(best[0] / 4.5))/2.0)-120
+            prefdir=destDir-120+orient
             print("optimal dir is at "+str(round(destd-120))+" ("+str(round(best[0]/4.5-120))+"-"+str(round(best[len(best)-1]/4.5)-90)+")")
             #speed=1
             #x=1
@@ -120,6 +122,10 @@ def print_data(data):
         elif(dataFront.mean()>6 or fulldata.mean()>8):
             speed=2
             x=1
+    elif navMode==3:
+        dor=prefdir-orient
+        if(abs(180))
+
 
     dataString=" o : "+str(round(orient))+" | navmode "+str(navMode)+" | dist  ("+str(round(distLeft,1))+" "+str(round(distFront,1))+" "+str(round(distRight,1))+") | turn "+str(round(turn,1))+" | speed "+str(round(speed))
 
@@ -132,7 +138,17 @@ def print_data(data):
     lastturn=turn
     Controls.move(x, turn, speed,dt)
 
-
+def getOrientDif(o1,o2):
+    '''```o1 = np.rad2deg(self.orient) + 90
+o2 = np.rad2deg(nfunc.orient) + 90
+if (o1 > o2):
+    o1 = np.rad2deg(nfunc.orient) + 90
+    o2 = np.rad2deg(self.orient) + 90
+    dor = abs(o1 - o2)
+    dor1 = abs((o1 + 180) - o2)
+    if (dor < dor1):
+        return dor
+    return dor1```'''
 
 def findMaxes(data):
     mean=data.mean()
