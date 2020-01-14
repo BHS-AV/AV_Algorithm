@@ -106,7 +106,7 @@ def print_data(data):
         '''
         if(len(rows)!=0):
             best=rows[0]
-            br = ((  best[len(best) - 1] / 4.5)-(best[0] / 4.5))/((abs((best[len(best)/2]/4.5)-120)/120))
+            br = ((  best[len(best) - 1] / 4.5)-(best[0] / 4.5))/((abs((best[len(best)/2]/4.5)-120)/120))#this score is bugged
             for r in rows:
                 rg=((  r[len(r) - 1]) / 4.5-(r[0] / 4.5))/((abs((r[len(r)/2]/4.5)-120)/120))
                 #print ("row from "+str((r[len(r)-1]))+" - "+str((r[0]))+" is "+str(rg))
@@ -116,16 +116,29 @@ def print_data(data):
             destd=(best[0]/2.0)+(((  best[len(best) - 1] / 4.5)-(best[0] / 4.5))/2.0)-120
             prefdir=destDir-120+orient
             print("optimal dir is at "+str(round(destd-120))+" ("+str(round(best[0]/4.5-120))+"-"+str(round(best[len(best)-1]/4.5)-90)+")")
+            navMode=3
             #speed=1
             #x=1
             #turn=(destd/60) if abs(destd)<60 else (-1 if turn<0 else 1)
         elif(dataFront.mean()>6 or fulldata.mean()>8):
+            print("no optimal dir")
             speed=2
             x=1
     elif navMode==3:
         dor=prefdir-orient
-        if(abs(180))
-
+        if(abs(dor)>180):
+            dor=prefdir+360-orient
+            if (abs(dor) > 180):
+                dor=prefdir-360-orient
+        turn=dor/180
+        turn = turn if abs(turn)<1 else (1 if turn>0 else -1)
+        speed=(1-abs(turn))*2
+        x=1
+        if( dataFront.mean()<2):
+            navMode=2
+            speed=0
+            x=0
+            turn=0
 
     dataString=" o : "+str(round(orient))+" | navmode "+str(navMode)+" | dist  ("+str(round(distLeft,1))+" "+str(round(distFront,1))+" "+str(round(distRight,1))+") | turn "+str(round(turn,1))+" | speed "+str(round(speed))
 
@@ -134,8 +147,8 @@ def print_data(data):
             lastPathFind = time.time()
             print("finding ppaths")
             m.findPPaths()
-    turn=(turn*.3)+(lastturn*.7)
-    lastturn=turn
+    #turn=(turn*.3)+(lastturn*.7)
+    #lastturn=turn
     Controls.move(x, turn, speed,dt)
 
 def getOrientDif(o1,o2):
