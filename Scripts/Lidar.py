@@ -108,14 +108,15 @@ def print_data(data):
             best=rows[0]
             br = ((  best[len(best) - 1] / 4.5)-(best[0] / 4.5))/((abs((best[len(best)/2]/4.5)-120)/120))#this score is bugged
             for r in rows:
-                rg=((  r[len(r) - 1]) / 4.5-(r[0] / 4.5))/((abs((r[len(r)/2]/4.5)-120)/120))
-                #print ("row from "+str((r[len(r)-1]))+" - "+str((r[0]))+" is "+str(rg))
+                rg=((  r[len(r) - 1]) / 4.5-(r[0] / 4.5))/(pow(abs((r[len(r)/2]/4.5)-120)/120,2))
+                print ("row from "+str((r[len(r)-1]/4.5))+" - "+str((r[0]/4.5))+" is "+str(rg))
                 if(rg>br):
                     br=rg
                     best=r
             destd=(best[0]/2.0)+(((  best[len(best) - 1] / 4.5)-(best[0] / 4.5))/2.0)-120
             prefdir=destDir-120+orient
-            print("optimal dir is at "+str(round(destd-120))+" ("+str(round(best[0]/4.5-120))+"-"+str(round(best[len(best)-1]/4.5)-90)+")")
+            if(prefdir<0):prefdir=prefdir+360
+            print("optimal dir is at "+str(round(destd))+" ("+str(round(best[0]/4.5-120))+"-"+str(round(best[len(best)-1]/4.5)-90)+")")
             navMode=3
             #speed=1
             #x=1
@@ -131,10 +132,11 @@ def print_data(data):
             if (abs(dor) > 180):
                 dor=prefdir-360-orient
         turn=dor/180
+        print ("turning "+str(round(turn,3))+" from "+str(round(orient,2))+" to "+str(round(prefdir,2)))
         turn = turn if abs(turn)<1 else (1 if turn>0 else -1)
         speed=(1-abs(turn))*2
         x=1
-        if( dataFront.mean()<2):
+        if( dataFront.mean()<.5):
             navMode=2
             speed=0
             x=0
