@@ -15,7 +15,7 @@ lastPathFind=time.time()
 lastturn=0
 turn=0
 turnStart=0
-navMode=2 # 0 = standard ; 1 = reversing why not work
+navMode=0 # 0 = standard ; 1 = reversing why not work
 orient=0
 dataString=""
 speed=0
