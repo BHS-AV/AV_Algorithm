@@ -160,7 +160,7 @@ def render(dt):
             l.draw(win)
 
     for n in oldNodes:
-        size=len(n.cn)
+        #size=len(n.cn)
         #rad=size/2.0+1
         p2 = Circle(n.p, 1)
         p2.setFill('grey')
